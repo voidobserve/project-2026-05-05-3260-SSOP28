@@ -1,0 +1,147 @@
+C51 COMPILER V9.60.7.0   AIP3368                                                           05/05/2026 17:53:50 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE AIP3368
+OBJECT MODULE PLACED IN .\Release\Objects\aip3368.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\..\Hardware\aip3368.c LARGE OPTIMIZE(9,SIZE) BROWSE ORDER INTVECTOR(0
+                    -X000C) INCDIR(..\..\Libraries\Include;..\..\User;..\..\User\lib;..\..\Hardware) INTERVAL(3) DEBUG OBJECTEXTEND PRINT(.\R
+                    -elease\Listings\aip3368.lst) OBJECT(.\Release\Objects\aip3368.obj)
+
+line level    source
+
+   1          #include "aip3368.h"
+   2          
+   3          #include "user_config.h"
+*** WARNING C318 IN LINE 3 OF ..\..\Hardware\aip3368.c: can't open file 'user_config.h'
+   4          
+   5          #if 1 // AIP3368H_MODULE
+   6          
+   7          
+   8          
+   9          // 显存
+  10          volatile u16 aip3368h_display_buff[AIP3368H_DEV_NUM];
+  11          
+  12          
+  13          static void aip3368h_module_send_data_to_one_dev(u16 dat)
+  14          {
+  15   1          u16 i;
+  16   1          // PDM = 1;
+  17   1      
+  18   1          for (i = 0; i < 16; i++)
+  19   1          {
+  20   2              DIO = dat & 0x8000 ? 1 : 0;
+  21   2      
+  22   2              aip3368h_delay();
+  23   2              DCK = 1;
+  24   2              aip3368h_delay();
+  25   2              dat <<= 1;
+  26   2              DCK = 0;
+  27   2              aip3368h_delay();
+  28   2          }
+  29   1          // PDM = 0;
+  30   1      }
+  31          
+  32          static void aip3368h_module_send_data_to_all_dev(u16 *buff, u8 len)
+  33          {
+  34   1          u8 i;
+  35   1      
+  36   1          // EA = 0;
+  37   1          // 开始
+  38   1          DCK = 0;
+  39   1          LAT = 0;
+  40   1          // PDM = 1;
+  41   1          aip3368h_delay();
+  42   1      
+  43   1          // 一帧完整数据
+  44   1          for (i = 0; i < len; i++)
+  45   1          {
+  46   2              aip3368h_module_send_data_to_one_dev(buff[i]);
+  47   2          }
+  48   1      
+  49   1          // 结束
+  50   1          PDM = 1;
+*** ERROR C202 IN LINE 50 OF ..\..\Hardware\aip3368.c: 'P34': undefined identifier
+  51   1          LAT = 1;
+C51 COMPILER V9.60.7.0   AIP3368                                                           05/05/2026 17:53:50 PAGE 2   
+
+  52   1          aip3368h_delay();
+  53   1          LAT = 0;
+  54   1          PDM = 0;
+*** ERROR C202 IN LINE 54 OF ..\..\Hardware\aip3368.c: 'P34': undefined identifier
+  55   1          aip3368h_delay();
+  56   1          DIO = 0;
+  57   1          
+  58   1          // EA = 1;
+  59   1      }
+  60          
+  61          #define AIP3368H_FLASH_TEST_ENABLE          0
+  62          void aip3368h_module_display(void)
+  63          {
+  64   1          if (!systimer_flag_is_valid(SYSTIME_FLAG_50MS))
+*** ERROR C202 IN LINE 64 OF ..\..\Hardware\aip3368.c: 'SYSTIME_FLAG_50MS': undefined identifier
+  65   1              return;
+  66   1      
+  67   1      #if AIP3368H_FLASH_TEST_ENABLE
+                  // 闪烁测试
+                  if (display_buff[0] == 0x0000)
+                      memset(display_buff, 0xFF, sizeof(display_buff));
+                  else
+                      memset(display_buff, 0x00, sizeof(display_buff));
+              #endif
+  74   1      
+  75   1          aip3368h_module_send_data_to_all_dev(display_buff, AIP3368H_DEV_NUM);
+*** ERROR C202 IN LINE 75 OF ..\..\Hardware\aip3368.c: 'display_buff': undefined identifier
+  76   1      }
+  77          
+  78          void aip3368h_module_clear(void)
+  79          {
+  80   1          memset(display_buff, 0x00, sizeof(display_buff));
+*** ERROR C202 IN LINE 80 OF ..\..\Hardware\aip3368.c: 'display_buff': undefined identifier
+  81   1          aip3368h_module_send_data_to_all_dev(display_buff, AIP3368H_DEV_NUM);
+*** ERROR C202 IN LINE 81 OF ..\..\Hardware\aip3368.c: 'display_buff': undefined identifier
+  82   1      }
+  83          
+  84          void aip3368h_module_init(void)
+  85          {
+  86   1          // memset(display_buff, 0xF0, sizeof(display_buff));
+  87   1          for(act_tmp=0;act_tmp<16;act_tmp++){
+*** ERROR C202 IN LINE 87 OF ..\..\Hardware\aip3368.c: 'act_tmp': undefined identifier
+  88   2                      display_buff[act_tmp]=0x0000;
+*** ERROR C202 IN LINE 88 OF ..\..\Hardware\aip3368.c: 'act_tmp': undefined identifier
+  89   2              }
+  90   1      
+  91   1          GPIO_Init(P05F, OUTPUT);
+*** ERROR C202 IN LINE 91 OF ..\..\Hardware\aip3368.c: 'P05F': undefined identifier
+  92   1          GPIO_Init(P06F, OUTPUT);
+*** ERROR C202 IN LINE 92 OF ..\..\Hardware\aip3368.c: 'P06F': undefined identifier
+  93   1          GPIO_Init(P07F, OUTPUT);
+*** ERROR C202 IN LINE 93 OF ..\..\Hardware\aip3368.c: 'P07F': undefined identifier
+  94   1          GPIO_Init(P34F, OUTPUT);
+*** ERROR C202 IN LINE 94 OF ..\..\Hardware\aip3368.c: 'P34F': undefined identifier
+  95   1          DIO = 0;
+  96   1          DCK = 0;
+  97   1          LAT = 0;
+  98   1          PDM = 1;
+*** ERROR C202 IN LINE 98 OF ..\..\Hardware\aip3368.c: 'P34': undefined identifier
+  99   1          aip3368h_module_send_data_to_all_dev(display_buff, AIP3368H_DEV_NUM);
+*** ERROR C202 IN LINE 99 OF ..\..\Hardware\aip3368.c: 'display_buff': undefined identifier
+ 100   1      }
+C51 COMPILER V9.60.7.0   AIP3368                                                           05/05/2026 17:53:50 PAGE 3   
+
+ 101          
+ 102          void aip3368h_module_uninit(void)
+ 103          {
+ 104   1          aip3368h_module_clear();    // 清屏
+ 105   1          GPIO_Init(P05F, 0);
+*** ERROR C202 IN LINE 105 OF ..\..\Hardware\aip3368.c: 'P05F': undefined identifier
+ 106   1          GPIO_Init(P06F, 0);
+*** ERROR C202 IN LINE 106 OF ..\..\Hardware\aip3368.c: 'P06F': undefined identifier
+ 107   1          GPIO_Init(P07F, 0);
+*** ERROR C202 IN LINE 107 OF ..\..\Hardware\aip3368.c: 'P07F': undefined identifier
+ 108   1          GPIO_Init(P34F, 0);
+*** ERROR C202 IN LINE 108 OF ..\..\Hardware\aip3368.c: 'P34F': undefined identifier
+ 109   1      }
+ 110          
+ 111          #endif
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  18 ERROR(S)

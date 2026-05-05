@@ -1,0 +1,168 @@
+C51 COMPILER V9.60.7.0   TMR1                                                              05/05/2026 17:51:46 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE TMR1
+OBJECT MODULE PLACED IN .\Release\Objects\tmr1.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\..\Hardware\tmr1.c LARGE OPTIMIZE(9,SIZE) BROWSE ORDER INTVECTOR(0X00
+                    -0C) INCDIR(..\..\Libraries\Include;..\..\User;..\..\User\lib;..\..\Hardware) INTERVAL(3) DEBUG OBJECTEXTEND PRINT(.\Rele
+                    -ase\Listings\tmr1.lst) OBJECT(.\Release\Objects\tmr1.obj)
+
+line level    source
+
+   1          #include "tmr1.h"
+   2          
+   3          // 定时器定时周期 (单位:Hz)
+   4          // 周期值 = 系统时钟 / 定时器分频 / 频率 - 1
+   5          #define TMR1_PERIOD (SYSCLK / 128 / 1000 - 1) // 1000Hz,1ms
+   6          
+   7          /**
+   8           * @brief 配置定时器TMR1，配置完成后，定时器默认关闭
+   9           */
+  10          void tmr1_config(void)
+  11          {
+  12   1          __SetIRQnIP(TMR1_IRQn, TMR1_IQn_CFG); // 设置中断优先级（TMR1）
+  13   1          __DisableIRQ(TMR1_IRQn);              // 禁用中断
+  14   1          IE_EA = 1;                            // 打开总中断
+  15   1      
+  16   1          TMR_ALLCON = TMR1_CNT_CLR(0x1); // 清除计数值
+  17   1      
+  18   1          // USER_TO_DO 待优化
+  19   1          TMR1_CONL &= ~TMR_PRESCALE_SEL(0x07); // 清除TMR1的预分频配置寄存器
+  20   1          TMR1_CONL |= TMR_PRESCALE_SEL(0x07);  // 定时器预分频
+  21   1          TMR1_CONL &= ~TMR_MODE_SEL(0x03);     // 清除TMR1的模式配置寄存器
+  22   1          TMR1_CONL |= TMR_MODE_SEL(0x01);      // 配置TMR1的模式为计数器模式，最后对系统时钟
+             -的脉冲进行计数
+  23   1      
+  24   1          TMR1_CONH &= ~TMR_PRD_PND(0x01); // 清除TMR1的计数标志位，表示未完成计数
+  25   1          TMR1_CONH |= TMR_PRD_IRQ_EN(1);  // 使能TMR1的计数中断
+  26   1      
+  27   1          // 配置TMR1的计数周期
+  28   1          TMR1_PRH = TMR_PERIOD_VAL_H((TMR1_PERIOD >> 8) & 0xFF); // 周期值
+  29   1          TMR1_PRL = TMR_PERIOD_VAL_L((TMR1_PERIOD >> 0) & 0xFF);
+  30   1      
+  31   1          // TMR1_CONL &= ~(TMR_SOURCE_SEL(0x07)); // 清除TMR1的时钟源配置寄存器
+  32   1          // TMR1_CONL |= TMR_SOURCE_SEL(0x05);    // 配置TMR1的时钟源，不用任何时钟
+  33   1      
+  34   1          // 重新给TMR1配置时钟
+  35   1          TMR1_CONL &= ~(TMR_SOURCE_SEL(0x07)); // 清除定时器的时钟源配置寄存器
+  36   1          TMR1_CONL |= TMR_SOURCE_SEL(0x06);    // 配置定时器的时钟源，使用系统时钟
+  37   1      
+  38   1          __EnableIRQ(TMR1_IRQn); // 使能中断
+  39   1          // IE_EA = 1;              // 打开总中断
+  40   1      }
+  41          
+  42          // TMR1中断服务函数
+  43          void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
+  44          {
+  45   1          // 进入中断设置IP，不可删除
+  46   1          __IRQnIPnPush(TMR1_IRQn);
+  47   1      
+  48   1          // ---------------- 用户函数处理 -------------------
+  49   1      
+  50   1          // 周期中断
+  51   1          if (TMR1_CONH & TMR_PRD_PND(0x1))
+  52   1          {
+C51 COMPILER V9.60.7.0   TMR1                                                              05/05/2026 17:51:46 PAGE 2   
+
+  53   2              TMR1_CONH |= TMR_PRD_PND(0x1); // 清除pending
+  54   2          
+  55   2      
+  56   2      #if AD_KEY_ENABLE
+                      // 在定时器注册按键扫描：
+                      // if (ad_key_para.cur_scan_times < 255)
+                      {
+                          ad_key_para.cur_scan_times++;
+                      }
+              #endif // AD_KEY_ENABLE
+  63   2      
+  64   2      #if TOUCH_KEY_ENABLE
+                      // if (touch_key_para.cur_scan_times < 255)
+                      {
+                          touch_key_para.cur_scan_times++;
+                      }
+              #endif // TOUCH_KEY_ENABLE
+  70   2      
+  71   2      #if PIN_LEVEL_SCAN_ENABLE
+  72   2              // if (pin_level_scan_time_cnt < 65535) // 防止计数溢出
+  73   2              {
+  74   3                  pin_level_scan_time_cnt++;
+  75   3              }
+  76   2      #endif
+  77   2      
+  78   2              // if (mileage_save_time_cnt < 4294967295 - diff_ms_cnt) // 防止计数溢出
+  79   2              if (mileage_save_time_cnt < 65535)
+  80   2              {
+  81   3                  mileage_save_time_cnt++;
+  82   3                  // mileage_save_time_cnt += diff_ms_cnt;
+  83   3              }
+  84   2      
+  85   2      #if FUEL_CAPACITY_SCAN_ENABLE
+  86   2              // if (fuel_capacity_scan_cnt < 4294967295 - diff_ms_cnt) // 防止计数溢出
+  87   2              {
+  88   3                  fuel_capacity_scan_cnt++;
+  89   3                  // fuel_capacity_scan_cnt += diff_ms_cnt;
+  90   3              }
+  91   2      #endif
+  92   2      
+  93   2              // if (synchronous_request_status == SYN_REQUEST_STATUS_HANDLING)
+  94   2              {
+  95   3                  synchronous_request_time_cnt++; // 同步请求的冷却计时
+  96   3                  // synchronous_request_time_cnt += diff_ms_cnt; // 同步请求的冷却计时
+  97   3                  if (synchronous_request_time_cnt >= 2000)
+  98   3                  {
+  99   4                      // 如果接收同步请求已经过了 xx s，清除冷却状态
+ 100   4                      synchronous_request_time_cnt = 0;
+ 101   4                      synchronous_request_status = SYN_REQUEST_STATUS_NONE;
+ 102   4                  }
+ 103   3              }
+ 104   2       
+ 105   2      
+ 106   2              // if (update_time_status == UPDATE_STATUS_HANDLING)
+ 107   2              {
+ 108   3                  // 如果更新时间进入冷却状态，进行冷却计时
+ 109   3                  update_time_cooling_cnt++;
+ 110   3                  // update_time_cooling_cnt += diff_ms_cnt;
+ 111   3                  if (update_time_cooling_cnt >= 100) // xx ms
+ 112   3                  {
+ 113   4                      // 过了冷却时间，退出冷却状态
+ 114   4                      update_time_cooling_cnt = 0;
+C51 COMPILER V9.60.7.0   TMR1                                                              05/05/2026 17:51:46 PAGE 3   
+
+ 115   4                      update_time_status = UPDATE_STATUS_NONE;
+ 116   4                  }
+ 117   3              }
+ 118   2      
+ 119   2              // if (mileage_update_time_cnt < 65535)
+ 120   2              {
+ 121   3                  mileage_update_time_cnt++;
+ 122   3              }
+ 123   2      
+ 124   2      #if BATTERY_SCAN_ENABLE
+ 125   2              // if (battery_scan_time_cnt < 4294967295)
+ 126   2              {
+ 127   3                  battery_scan_time_cnt++;
+ 128   3              }
+ 129   2      #endif // BATTERY_SCAN_ENABLE
+ 130   2       
+ 131   2      
+ 132   2              
+ 133   2          }
+ 134   1      
+ 135   1          // P20 = 0;// 测试中断持续时间
+ 136   1          // 退出中断设置IP，不可删除
+ 137   1          __IRQnIPnPop(TMR1_IRQn);
+ 138   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    270    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
