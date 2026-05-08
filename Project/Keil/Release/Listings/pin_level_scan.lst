@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   PIN_LEVEL_SCAN                                                    05/05/2026 17:51:47 PAGE 1   
+C51 COMPILER V9.60.7.0   PIN_LEVEL_SCAN                                                    05/07/2026 18:25:47 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE PIN_LEVEL_SCAN
@@ -16,213 +16,24 @@ line level    source
    5          volatile u16 pin_level_scan_time_cnt;
    6          
    7          void pin_level_scan_config(void)
-   8          {
+   8          { 
    9   1      
-  10   1          // 大灯对应的检测引脚
-  11   1          P2_MD0 &= ~(GPIO_P21_MODE_SEL(0x03)); // 配置为输入模式
-  12   1      
-  13   1          // 左转向灯对应的引脚
-  14   1          P2_MD1 &= ~(GPIO_P25_MODE_SEL(0x3)); // 配置为输入模式
-  15   1      
-  16   1          // 右转向灯状态对应的引脚
-  17   1          P2_MD0 &= ~(GPIO_P22_MODE_SEL(0x3)); // 配置为输入模式
+  10   1          // 检测 水温报警 的引脚:
+  11   1          P2_MD0 &= ~(GPIO_P20_MODE_SEL(0x03)); // 输入模式
+  12   1      }
+  13          
+  14          // 引脚电平扫描，都是低电平有效
+  15          void pin_level_scan(void)
+  16          {
+  17   1          
   18   1      
-  19   1          // 6档对应的引脚 （硬件原因，挡位检测脚不用开上拉）
-  20   1          P2_MD1 &= ~(GPIO_P27_MODE_SEL(0x3)); // 配置为输入模式
-  21   1      
-  22   1          // 5档对应的引脚 （硬件原因，挡位检测脚不用开上拉）
-  23   1          P3_MD0 &= ~(GPIO_P30_MODE_SEL(0x3)); // 配置为输入模式
-  24   1      
-  25   1          // 4档对应的引脚 （硬件原因，挡位检测脚不用开上拉）
-  26   1          P1_MD1 &= ~(GPIO_P14_MODE_SEL(0x3)); // 配置为输入模式
-  27   1      
-  28   1          // 3档对应的引脚 （硬件原因，挡位检测脚不用开上拉）
-  29   1          P1_MD0 &= ~(GPIO_P13_MODE_SEL(0x3)); // 配置为输入模式
-  30   1      
-  31   1          // 2档对应的引脚 （硬件原因，挡位检测脚不用开上拉）
-  32   1          P1_MD0 &= ~(GPIO_P10_MODE_SEL(0x3)); // 配置为输入模式
-  33   1      
-  34   1          // 1档对应的引脚 （硬件原因，挡位检测脚不用开上拉）
-  35   1          P0_MD1 &= ~(GPIO_P07_MODE_SEL(0x3)); // 配置为输入模式
-  36   1      
-  37   1          // 空挡对应的引脚 （硬件原因，挡位检测脚不用开上拉）
-  38   1          P0_MD1 &= ~(GPIO_P06_MODE_SEL(0x3)); // 配置为输入模式
-  39   1      
-  40   1          // 检测 水温报警 的引脚:
-  41   1          P2_MD0 &= ~(GPIO_P20_MODE_SEL(0x03)); // 输入模式
-  42   1      }
-  43          
-  44          // 引脚电平扫描，都是低电平有效
-  45          void pin_level_scan(void)
-  46          {
-  47   1          // 如果到了扫描时间，再更新挡位、转向灯和刹车的状态
-  48   1          if (pin_level_scan_time_cnt >= PIN_LEVEL_SCAN_TIME_MS)
-  49   1          {
-  50   2              pin_level_scan_time_cnt = 0;
-  51   2      
-  52   2      #if 0  // 刹车检测
-                     // if (PIN_DETECT_BRAKE)
-C51 COMPILER V9.60.7.0   PIN_LEVEL_SCAN                                                    05/05/2026 17:51:47 PAGE 2   
-
-                     // {
-                     //     // 如果没有刹车
-                     //     fun_info.brake = OFF;
-                     // }
-                     // else
-                     // {
-                     //     // 如果有刹车
-                     //     fun_info.brake = ON;
-                     // }
-              
-                      // flag_get_brake = 1;
-              #endif // 刹车检测
-  66   2      
-  67   2      #if 1 // 左转向灯、右转向灯、远光灯
-  68   2              if (PIN_DETECT_LEFT_TURN)
-  69   2              {
-  70   3                  // 如果左转向灯未开启
-  71   3                  fun_info.left_turn = OFF;
-  72   3              }
-  73   2              else
-  74   2              {
-  75   3                  // 如果左转向灯开启
-  76   3                  fun_info.left_turn = ON;
-  77   3              }
-  78   2              flag_get_left_turn = 1;
-  79   2      
-  80   2              if (PIN_DETECT_RIGHT_TURN)
-  81   2              {
-  82   3                  // 如果右转向灯未开启
-  83   3                  fun_info.right_turn = OFF;
-  84   3              }
-  85   2              else
-  86   2              {
-  87   3                  // 如果右转向灯开启
-  88   3                  fun_info.right_turn = ON;
-  89   3              }
-  90   2              flag_get_right_turn = 1;
-  91   2      
-  92   2              // if (PIN_DETECT_HIGH_BEAM)
-  93   2              // {
-  94   2              //     // 如果远光灯未开启
-  95   2              //     fun_info.high_beam = OFF;
-  96   2              // }
-  97   2              // else
-  98   2              // {
-  99   2              //     // 如果远光灯开启
- 100   2              //     fun_info.high_beam = ON;
- 101   2              // }
- 102   2              // flag_get_high_beam = 1;
- 103   2      
- 104   2              // 目前用存放远光灯的变量用来存放大灯的状态，硬件引脚没有检测远光�
-             -�，不会造成冲突
- 105   2              if (PIN_DETECT_HEAD_LIGHT)
- 106   2              {
- 107   3                  // 如果大灯未开启
- 108   3                  fun_info.high_beam = OFF;
- 109   3              }
- 110   2              else
- 111   2              {
- 112   3                  // 如果大灯开启
- 113   3                  fun_info.high_beam = ON;
- 114   3              }
-C51 COMPILER V9.60.7.0   PIN_LEVEL_SCAN                                                    05/05/2026 17:51:47 PAGE 3   
-
- 115   2      
- 116   2              flag_get_high_beam = 1;
- 117   2          }
- 118   1      
- 119   1      #endif
- 120   1      
- 121   1          // 以最低挡位优先，当最低档有信号时，不管其他挡位的信号，直接以最低档
-             -的为主
- 122   1          if (0 == PIN_DETECT_NEUTRAL_GEAR)
- 123   1          {
- 124   2              // 空挡
- 125   2              fun_info.gear = GEAR_NEUTRAL;
- 126   2          }
- 127   1          else if (0 == PIN_DETECT_FIRST_GEAR)
- 128   1          {
- 129   2              // 一档
- 130   2              fun_info.gear = GEAR_FIRST;
- 131   2          }
- 132   1          else if (0 == PIN_DETECT_SECOND_GEAR)
- 133   1          {
- 134   2              // 二档
- 135   2              fun_info.gear = GEAR_SECOND;
- 136   2          }
- 137   1          else if (0 == PIN_DETECT_THIRD_GEAR)
- 138   1          {
- 139   2              // 三档
- 140   2              fun_info.gear = GEAR_THIRD;
- 141   2          }
- 142   1          else if (0 == PIN_DETECT_FOURTH_GEAR)
- 143   1          {
- 144   2              // 四档
- 145   2              fun_info.gear = GEAR_FOURTH;
- 146   2          }
- 147   1          else if (0 == PIN_DETECT_FIFTH_GEAR)
- 148   1          {
- 149   2              // 五档
- 150   2              fun_info.gear = GEAR_FIFTH;
- 151   2          }
- 152   1          else if (0 == PIN_DETECT_XIXTH_GEAR)
- 153   1          {
- 154   2              // 六档
- 155   2              fun_info.gear = GEAR_SIXTH;
- 156   2          }
- 157   1          else
- 158   1          {
- 159   2              /*
- 160   2                  空挡、一档 ~ 六档都没有检测到，则赋值为 GEAR_UNKNOWN
- 161   2                  让显示屏中档位对应的图标空着
- 162   2              */
- 163   2              fun_info.gear = GEAR_UNKNOWN;
- 164   2          }
- 165   1      
- 166   1          // printf("cur gear %bu\n", fun_info.gear);
- 167   1          flag_get_gear = 1;
- 168   1      
- 169   1          if (0 == PIN_DETECT_TEMP_OF_WATER_ALERT)
- 170   1          {
- 171   2              // 如果检测到水温报警
- 172   2              fun_info.flag_is_in_water_temp_warning = 1;
- 173   2          }
- 174   1          else
- 175   1          {
-C51 COMPILER V9.60.7.0   PIN_LEVEL_SCAN                                                    05/05/2026 17:51:47 PAGE 4   
-
- 176   2              // 如果未检测到水温报警
- 177   2              fun_info.flag_is_in_water_temp_warning = 0;
- 178   2          }
- 179   1          flag_set_temp_of_water_warning = 1;
- 180   1      
- 181   1          // if (0 == PIN_DETECT_MALFUNCTION)
- 182   1          // {
- 183   1          //     // 如果检测到了故障
- 184   1          //     fun_info.flag_is_detect_malfunction = 1;
- 185   1      
- 186   1          //     // 没有引脚检测abs的状态，这里检测到故障后，也顺便设置abs的状态
- 187   1          //     // fun_info.flag_is_detect_abs = 1;
- 188   1          // }
- 189   1          // else
- 190   1          // {
- 191   1          //     // 如果未检测到故障
- 192   1          //     fun_info.flag_is_detect_malfunction = 0;
- 193   1      
- 194   1          //     // 没有引脚检测abs的状态，这里更新故障的状态后，也顺便设置abs的状�
-             -�
- 195   1          //     // fun_info.flag_is_detect_abs = 0;
- 196   1          // }
- 197   1          // //   printf("cur malfunction %bu\n", fun_info.flag_is_detect_malfunction);
- 198   1          // flag_update_malfunction_status = 1;
- 199   1      }
- 200          
- 201          #endif
+  19   1      }
+  20          
+  21          #endif
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    228    ----
+   CODE SIZE        =      8    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =      2    ----
    PDATA SIZE       =   ----    ----

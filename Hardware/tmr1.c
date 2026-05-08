@@ -51,7 +51,6 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
     if (TMR1_CONH & TMR_PRD_PND(0x1))
     {
         TMR1_CONH |= TMR_PRD_PND(0x1); // 清除pending
-    
 
 #if AD_KEY_ENABLE
         // 在定时器注册按键扫描：
@@ -90,32 +89,6 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
         }
 #endif
 
-        // if (synchronous_request_status == SYN_REQUEST_STATUS_HANDLING)
-        {
-            synchronous_request_time_cnt++; // 同步请求的冷却计时
-            // synchronous_request_time_cnt += diff_ms_cnt; // 同步请求的冷却计时
-            if (synchronous_request_time_cnt >= 2000)
-            {
-                // 如果接收同步请求已经过了 xx s，清除冷却状态
-                synchronous_request_time_cnt = 0;
-                synchronous_request_status = SYN_REQUEST_STATUS_NONE;
-            }
-        }
- 
-
-        // if (update_time_status == UPDATE_STATUS_HANDLING)
-        {
-            // 如果更新时间进入冷却状态，进行冷却计时
-            update_time_cooling_cnt++;
-            // update_time_cooling_cnt += diff_ms_cnt;
-            if (update_time_cooling_cnt >= 100) // xx ms
-            {
-                // 过了冷却时间，退出冷却状态
-                update_time_cooling_cnt = 0;
-                update_time_status = UPDATE_STATUS_NONE;
-            }
-        }
-
         // if (mileage_update_time_cnt < 65535)
         {
             mileage_update_time_cnt++;
@@ -127,9 +100,8 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
             battery_scan_time_cnt++;
         }
 #endif // BATTERY_SCAN_ENABLE
- 
 
-        
+        aip3368h_refresh_time_add();
     }
 
     // P20 = 0;// 测试中断持续时间

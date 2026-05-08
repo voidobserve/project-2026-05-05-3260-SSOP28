@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   ADC                                                               05/05/2026 17:51:46 PAGE 1   
+C51 COMPILER V9.60.7.0   ADC                                                               05/07/2026 18:25:46 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE ADC
@@ -14,169 +14,205 @@ line level    source
    3          #if (BATTERY_SCAN_ENABLE || AD_KEY_ENABLE || FUEL_CAPACITY_SCAN_ENABLE || TEMP_OF_WATER_SCAN_ENABLE)
    4          
    5          volatile u16 adc_val; // adc值，0~4095
-   6          // bit adc_done_flag = 0; // adc转换完成标志
-   7          
-   8          // adc配置，使用adc时还需要切换到对应的引脚通道
-   9          void adc_config(void)
-  10          {
-  11   1      #if BATTERY_SCAN_ENABLE
-  12   1          // P04--测量电池电压的引脚
-  13   1          P0_MD1 |= GPIO_P04_MODE_SEL(0x3); // 模拟模式
-  14   1      #endif
-  15   1      
-  16   1      #if AD_KEY_ENABLE
+   6          // 控制切换adc通道的状态机：
+   7          static volatile u8 adc_channel_status = ADC_CHANNEL_STATUS_NONE;
+   8          
+   9          // adc配置，使用adc时还需要切换到对应的引脚通道
+  10          void adc_config(void)
+  11          {
+  12   1      #if BATTERY_SCAN_ENABLE
+  13   1          // P04--测量电池电压的引脚
+  14   1          P0_MD1 |= GPIO_P04_MODE_SEL(0x3); // 模拟模式
+  15   1      #endif
+  16   1      
+  17   1      #if AD_KEY_ENABLE
                   // P05-- ad按键检测
                   P0_MD1 |= GPIO_P05_MODE_SEL(0x3); // 模拟模式
               #endif
-  20   1      
-  21   1      #if FUEL_CAPACITY_SCAN_ENABLE
-  22   1          // 检测油量的引脚：
-  23   1          P0_MD0 |= GPIO_P01_MODE_SEL(0x3); // 模拟模式
-  24   1      #endif
-  25   1      
-  26   1      #if TEMP_OF_WATER_SCAN_ENABLE
+  21   1      
+  22   1      #if FUEL_CAPACITY_SCAN_ENABLE
+  23   1          // 检测油量的引脚：
+  24   1          P0_MD0 |= GPIO_P01_MODE_SEL(0x3); // 模拟模式
+  25   1      #endif
+  26   1      
+  27   1      #if TEMP_OF_WATER_SCAN_ENABLE
               // 检测水温的引脚:
               // P0_MD0 |= GPIO_P00_MODE_SEL(0x3); // 模拟模式
               #endif // TEMP_OF_WATER_SCAN_ENABLE
-  30   1      
-  31   1          ADC_CFG1 |= (0x0F << 3); // ADC时钟分频为16分频，为系统时钟/16
-  32   1          ADC_CFG2 = 0xFF;         // 通道0采样时间配置为256个采样时钟周期
-  33   1      
-  34   1          // ADC配置
-  35   1          // ADC_ACON1 &= ~(ADC_VREF_SEL(0x7) | ADC_EXREF_SEL(0x1)); // 清除电压选择，关闭外部参考�
-             -��压
-  36   1          // ADC_ACON1 &= ~(ADC_INREF_SEL(0x01));                    // 关闭内部参考电压
-  37   1          // ADC_ACON1 |= ADC_VREF_SEL(0x06) | ADC_TEN_SEL(0x3); // 选择内部VCCA作为参考电压（需要�
-             -��闭ADC内部和外部的参考选择信号），关闭测试信号
-  38   1      
-  39   1          ADC_ACON1 &= ~((0x01 << 6) | (0x01 << 5) | (0x07 << 0)); // 关闭ADC中内部参考能使信号，关
-             -闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-  40   1          ADC_ACON1 |= (0x03 << 3) | (0x06 << 0);                  // 关闭测试信号，选择内部VCCA作�
-             -�参考电压（使用VCCA作为参考电压，需要关闭内部使能参考和外部使能参考）
-  41   1          ADC_ACON0 = ADC_CMP_EN(0x1) |                            // 打开ADC中的CMP使能信号
-  42   1                      ADC_BIAS_EN(0x1) |                           // 打开ADC偏置电流能使信号
-  43   1                      ADC_BIAS_SEL(0x1);                           // 偏置电流选择：1x
-  44   1      
-  45   1          ADC_TRGS0 |= (0x07 << 4); // 通道 0DLY 的 ADC 时钟个数选择，配置为 4n+1，4 * 29 + 1
-  46   1          ADC_CHS0 |= (0x01 << 6);  // 使能 通道 0DLY 功能
-  47   1      }
-  48          
-  49          // 切换adc扫描的引脚
-C51 COMPILER V9.60.7.0   ADC                                                               05/05/2026 17:51:46 PAGE 2   
+  31   1      
+  32   1          ADC_CFG1 |= (0x0F << 3) | // ADC时钟分频为16分频，为系统时钟/16
+  33   1                      (0x01 << 0);  // adc0中断使能
+  34   1          ADC_CFG2 = 0xFF;          // 通道0采样时间配置为256个采样时钟周期
+  35   1      
+  36   1          ADC_ACON0 = ADC_CMP_EN(0x1) |  // 打开ADC中的CMP使能信号
+  37   1                      ADC_BIAS_EN(0x1) | // 打开ADC偏置电流能使信号
+  38   1                      ADC_BIAS_SEL(0x1); // 偏置电流选择：1x
+  39   1      
+  40   1          ADC_TRGS0 |= (0x07 << 4); // 通道 0DLY 的 ADC 时钟个数选择，配置为 4n+1，4 * 29 + 1
+  41   1          ADC_CHS0 |= (0x01 << 6);  // 使能 通道 0DLY 功能
+  42   1          __EnableIRQ(ADC_IRQn);    // 使能ADC中断
+  43   1          IE_EA = 1;                // 使能总中断
+  44   1      }
+  45          
+  46          // 设置adc通道
+  47          void adc_channel_set(adc_channel_t adc_channel)
+  48          {
+  49   1          ADC_CHS0 &= ~((0x01 << 4) |
+  50   1                        (0x01 << 3) |
+  51   1                        (0x01 << 2) |
+  52   1                        (0x01 << 1) |
+  53   1                        (0x01 << 0)); // 清空选择的adc0通路
+C51 COMPILER V9.60.7.0   ADC                                                               05/07/2026 18:25:46 PAGE 2   
 
-  50          // adc_pin--adc引脚，在对应的枚举类型中定义
-  51          void adc_sel_pin(u8 adc_pin)
-  52          {
-  53   1          ADC_CHS0 &= ~((0x01 << 4) | (0x01 << 3) | (0x01 << 2) | (0x01 << 1) | (0x01 << 0)); // 清空选择的
-             -adc0通路
   54   1      
-  55   1          switch (adc_pin)
+  55   1          switch (adc_channel)
   56   1          {
   57   2      #if BATTERY_SCAN_ENABLE
-  58   2          case ADC_PIN_BATTERY:                                     // 检测电池电量
-  59   2              ADC_ACON1 &= ~((0x01 << 5) | (0x07 << 0));            // 关闭ADC外部参考选择信号，清�
-             -�ADC内部参考电压的选择配置
-  60   2              ADC_ACON1 |= (0x01 << 6) | (0x03 << 3) | (0x02 << 0); // 使能ADC内部参考信号，关闭测�
-             -�信号内部参考电压选择2.4V
-  61   2              ADC_CHS0 |= ADC_ANALOG_CHAN(0x04);                    // P04通路
-  62   2              break;
-  63   2      #endif
-  64   2      
-  65   2      #if AD_KEY_ENABLE
-                  // case ADC_PIN_TOUCH:                    // 检测触摸IC传过来的电压
-                  case ADC_PIN_KEY:                                            // 检测ad按键
-                      ADC_ACON1 &= ~((0x01 << 6) | (0x01 << 5) | (0x07 << 0)); // 关闭ADC中内部参考能使信号�
-             -�关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-                      ADC_ACON1 |= (0x03 << 3) | (0x06 << 0);                  // 关闭测试信号，选择内部VCCA�
-             -��为参考电压（使用VCCA作为参考电压，需要关闭内部使能参考和外部使能参考）
-                      ADC_CHS0 |= ADC_ANALOG_CHAN(0x05);                       // P05通路
-              
-                      break;
-              #endif
-  74   2      
-  75   2      #if FUEL_CAPACITY_SCAN_ENABLE
-  76   2          case ADC_PIN_FUEL: // 检测油量
-  77   2      
-  78   2              //    ADC_ACON1 &= ~((0x01 << 6) | (0x01 << 5) | (0x07 << 0)); // 关闭ADC中内部参考能使�
+  58   2      
+  59   2          case ADC_CHANNEL_BATTERY:                      // 检测电池电量
+  60   2              ADC_ACON1 &= ~((0x01 << 5) | (0x07 << 0)); // 关闭ADC外部参考选择信号，清空ADC内部�
+             -��考电压的选择配置
+  61   2              ADC_ACON1 |= (0x01 << 6) |                 // 使能ADC内部参考信号
+  62   2                           (0x03 << 3) |                 // 关闭测试信号
+  63   2                           (0x02 << 0);                  // 内部参考电压选择2.4V
+  64   2              ADC_CHS0 |= ADC_ANALOG_CHAN(0x04);         // P04通路
+  65   2              break;
+  66   2      
+  67   2      #endif
+  68   2      
+  69   2      #if FUEL_CAPACITY_SCAN_ENABLE
+  70   2      
+  71   2          case ADC_CHANNEL_FUEL: // 检测油量
+  72   2      
+  73   2              //    ADC_ACON1 &= ~((0x01 << 6) | (0x01 << 5) | (0x07 << 0)); // 关闭ADC中内部参考能使�
              -�号，关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-  79   2              //    ADC_ACON1 |= (0x03 << 3) | (0x06 << 0);                  // 关闭测试信号，选择内�
+  74   2              //    ADC_ACON1 |= (0x03 << 3) | (0x06 << 0);                  // 关闭测试信号，选择内�
              -�VCCA作为参考电压（使用VCCA作为参考电压，需要关闭内部使能参考和外部使能参考）
-  80   2      
-  81   2              ADC_ACON1 &= ~((0x01 << 5) | (0x07 << 0));            // 关闭ADC外部参考选择信号，清�
-             -�ADC内部参考电压的选择配置
-  82   2              // ADC_ACON1 |= (0x01 << 6) | (0x03 << 3) | (0x01 << 0); // 使能ADC内部参考信号，关闭�
-             -�试信号，内部参考电压选择2.0V
-  83   2              ADC_ACON1 |= (0x01 << 6) | (0x03 << 3) | (0x03 << 0); // 使能ADC内部参考信号，关闭测�
-             -�信号，内部参考电压选择3.0V
-  84   2              ADC_CHS0 |= ADC_ANALOG_CHAN(0x01);                    // P01通路
-  85   2              break;
-  86   2      #endif
-  87   2      
-  88   2      #if TEMP_OF_WATER_SCAN_ENABLE
-                  case ADC_PIN_TEMP_OF_WATER: // 检测水温的引脚
-                      // ADC_ACON1 &= ~((0x01 << 6) | (0x01 << 5) | (0x07 << 0)); // 关闭ADC中内部参考能使信�
-             -�，关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-                      // ADC_ACON1 |= (0x03 << 3) | (0x06 << 0);                  // 关闭测试信号，选择内部VC
-             -CA作为参考电压（使用VCCA作为参考电压，需要关闭内部使能参考和外部使能参考）
-                      // ADC_CHS0 = ADC_ANALOG_CHAN(0x00);                        // P00通路
-                      break;
-              #endif
-  95   2          }
-  96   1      
-  97   1          ADC_CFG0 |= ADC_CHAN0_EN(0x1) | // 使能通道0转换
-  98   1                      ADC_EN(0x1);        // 使能A/D转换
-  99   1      
-C51 COMPILER V9.60.7.0   ADC                                                               05/05/2026 17:51:46 PAGE 3   
+  75   2      
+  76   2              ADC_ACON1 &= ~((0x01 << 5) | (0x07 << 0)); // 关闭ADC外部参考选择信号，清空ADC内部�
+             -��考电压的选择配置
+  77   2              ADC_ACON1 |= (0x01 << 6) |                 // 使能ADC内部参考信号
+  78   2                           (0x03 << 3) |                 // 关闭测试信号
+  79   2                           (0x03 << 0);                  // 内部参考电压选择3.0V
+  80   2              ADC_CHS0 |= ADC_ANALOG_CHAN(0x01);         // P01通路
+  81   2              break;
+  82   2      
+  83   2      #endif
+  84   2          }
+  85   1      
+  86   1          ADC_CFG0 |= ADC_CHAN0_EN(0x1) | // 使能通道0转换
+  87   1                      ADC_EN(0x1);        // 使能A/D转换
+  88   1          // 切换完通道后，需要等待ADC模块配置稳定，至少20us以上
+  89   1      }
+  90          
+  91          // 获取adc值，存放到变量adc_val中(adc单次转换)
+  92          u16 adc_single_convert(void)
+  93          {
+  94   1          ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // 触发ADC0转换
+  95   1          while (!(ADC_STA & ADC_CHAN0_DONE(0x1)))
+  96   1              ;                                           // 等待转换完成
+  97   1          ADC_STA = ADC_CHAN0_DONE(0x1);                  // 清除ADC0转换完成标志位
+  98   1          return ((ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4)); // 读取ADC0的值
+  99   1      }
+ 100          
+ 101          // adc采集+滤波
+ 102          u16 adc_getval(void)
+ 103          {
+ 104   1          u16 adc_val_tmp = 0;     // 存放单次采集到的ad值
+ 105   1          u32 adc_val_sum = 0;     // 存放所有采集到的ad值的累加
+ 106   1          u16 get_adcmax = 0;      // 存放采集到的最大的ad值
+ 107   1          u16 get_adcmin = 0xFFFF; // 存放采集到的最小的ad值(初始值为最大值)
+ 108   1          u8 i = 0;
+ 109   1      
+ 110   1          for (i = 0; i < 20; i++)
+ 111   1          {
+C51 COMPILER V9.60.7.0   ADC                                                               05/07/2026 18:25:46 PAGE 3   
 
- 100   1          delay_ms(1); // 等待ADC模块配置稳定，需要等待20us以上
- 101   1      }
- 102          
- 103          // 获取adc值，存放到变量adc_val中(adc单次转换)
- 104          u16 adc_single_convert(void)
- 105          {
- 106   1          ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // 触发ADC0转换
- 107   1          while (!(ADC_STA & ADC_CHAN0_DONE(0x1)))
- 108   1              ;                                           // 等待转换完成
- 109   1          ADC_STA = ADC_CHAN0_DONE(0x1);                  // 清除ADC0转换完成标志位
- 110   1          return ((ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4)); // 读取ADC0的值
- 111   1      }
- 112          
- 113          // adc采集+滤波
- 114          u16 adc_getval(void)
- 115          {
- 116   1          u16 adc_val_tmp = 0;     // 存放单次采集到的ad值
- 117   1          u32 adc_val_sum = 0;     // 存放所有采集到的ad值的累加
- 118   1          u16 get_adcmax = 0;      // 存放采集到的最大的ad值
- 119   1          u16 get_adcmin = 0xFFFF; // 存放采集到的最小的ad值(初始值为最大值)
- 120   1          u8 i = 0;
+ 112   2              adc_val_tmp = adc_single_convert(); // 获取一次ad值
+ 113   2              if (i < 2)
+ 114   2                  continue; // 丢弃前两次采样的
+ 115   2              if (adc_val_tmp > get_adcmax)
+ 116   2                  get_adcmax = adc_val_tmp; // 更新当前采集到的最大值
+ 117   2              if (adc_val_tmp < get_adcmin)
+ 118   2                  get_adcmin = adc_val_tmp; // 更新当前采集到的最小值
+ 119   2              adc_val_sum += adc_val_tmp;
+ 120   2          }
  121   1      
- 122   1          for (i = 0; i < 20; i++)
- 123   1          {
- 124   2              adc_val_tmp = adc_single_convert(); // 获取一次ad值
- 125   2              if (i < 2)
- 126   2                  continue; // 丢弃前两次采样的
- 127   2              if (adc_val_tmp > get_adcmax)
- 128   2                  get_adcmax = adc_val_tmp; // 更新当前采集到的最大值
- 129   2              if (adc_val_tmp < get_adcmin)
- 130   2                  get_adcmin = adc_val_tmp; // 更新当前采集到的最小值
- 131   2              adc_val_sum += adc_val_tmp;
- 132   2          }
- 133   1      
- 134   1          adc_val_sum -= get_adcmax;        // 去掉一个最大
- 135   1          adc_val_sum -= get_adcmin;        // 去掉一个最小
- 136   1          adc_val_tmp = (adc_val_sum >> 4); // 除以16，取平均值
- 137   1      
- 138   1          return adc_val_tmp;
- 139   1      }
- 140          
- 141          #endif // #if (BATTERY_SCAN_ENABLE || AD_KEY_ENABLE || FUEL_CAPACITY_SCAN_ENABLE || TEMP_OF_WATER_SCAN_ENA
+ 122   1          adc_val_sum -= get_adcmax;        // 去掉一个最大
+ 123   1          adc_val_sum -= get_adcmin;        // 去掉一个最小
+ 124   1          adc_val_tmp = (adc_val_sum >> 4); // 除以16，取平均值
+ 125   1      
+ 126   1          return adc_val_tmp;
+ 127   1      }
+ 128          
+ 129          // 由定时器调用，adc通道切换
+ 130          void adc_channel_switch_by_isr(void)
+ 131          {
+ 132   1          switch (adc_channel_status)
+ 133   1          {
+ 134   2          case ADC_CHANNEL_STATUS_NONE:
+ 135   2          case ADC_CHANNEL_STATUS_SEL_FUEL_END:
+ 136   2              // 默认状态或者是已经采集完油量对应的ad值，转换到下一个通道
+ 137   2              adc_channel_set(ADC_CHANNEL_BATTERY);
+ 138   2              adc_channel_status = ADC_CHANNEL_STATUS_SEL_BATTERY_BEGIN;
+ 139   2              break;
+ 140   2          case ADC_CHANNEL_STATUS_SEL_BATTERY_BEGIN:
+ 141   2              ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // 触发ADC0转换
+ 142   2              adc_channel_status = ADC_CHANNEL_STATUS_SEL_BATTERY_END;
+ 143   2              break;
+ 144   2          case ADC_CHANNEL_STATUS_SEL_BATTERY_END:
+ 145   2              adc_channel_set(ADC_CHANNEL_FUEL);
+ 146   2              adc_channel_status = ADC_CHANNEL_STATUS_SEL_FUEL_BEGIN;
+ 147   2              break;
+ 148   2          case ADC_CHANNEL_STATUS_SEL_FUEL_BEGIN:
+ 149   2              ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // 触发ADC0转换
+ 150   2              adc_channel_status = ADC_CHANNEL_STATUS_SEL_FUEL_END;
+ 151   2              break;
+ 152   2      
+ 153   2          default:
+ 154   2              break;
+ 155   2          }
+ 156   1      }
+ 157          
+ 158          void ADC_IRQHandler(void) interrupt ADC_IRQn
+ 159          {
+ 160   1          u16 adc_val; // 由后续赋值
+ 161   1      
+ 162   1          // 进入中断设置IP，不可删除
+ 163   1          __IRQnIPnPush(ADC_IRQn);
+ 164   1      
+ 165   1          // ---------------- 用户函数处理 -------------------
+ 166   1          if (ADC_STA & ADC_CHAN0_DONE(0x01))
+ 167   1          {
+ 168   2              ADC_STA |= ADC_CHAN0_DONE(0x01);                 // 清除ADC0转换完成标志位
+ 169   2              adc_val = (ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4); // 读取ADC0的值
+ 170   2      
+ 171   2              switch (adc_channel_status)
+ 172   2              {
+ 173   3              case ADC_CHANNEL_STATUS_SEL_BATTERY_END:
+C51 COMPILER V9.60.7.0   ADC                                                               05/07/2026 18:25:46 PAGE 4   
+
+ 174   3                  adc_update_battery_val(adc_val);
+ 175   3                  break;
+ 176   3      
+ 177   3              case ADC_CHANNEL_STATUS_SEL_FUEL_END:
+ 178   3                  adc_update_fuel_val(adc_val);
+ 179   3                  break;
+ 180   3              }
+ 181   2          }
+ 182   1      
+ 183   1          // 退出中断设置IP，不可删除
+ 184   1          __IRQnIPnPop(ADC_IRQn);
+ 185   1      }
+ 186          
+ 187          #endif // #if (BATTERY_SCAN_ENABLE || AD_KEY_ENABLE || FUEL_CAPACITY_SCAN_ENABLE || TEMP_OF_WATER_SCAN_ENA
              -BLE)
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    361    ----
+   CODE SIZE        =    541    ----
    CONSTANT SIZE    =   ----    ----
-   XDATA SIZE       =      2      11
+   XDATA SIZE       =      3      13
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----

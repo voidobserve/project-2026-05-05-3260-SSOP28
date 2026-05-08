@@ -432,11 +432,6 @@
               <FilePath>..\..\Hardware\key_driver.c</FilePath>
             </File>
             <File>
-              <FileName>iic_soft.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\Hardware\iic_soft.c</FilePath>
-            </File>
-            <File>
               <FileName>user_flash.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\Hardware\user_flash.c</FilePath>
@@ -462,11 +457,6 @@
               <FilePath>..\..\User\my_config.h</FilePath>
             </File>
             <File>
-              <FileName>fun_info.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\fun_info.c</FilePath>
-            </File>
-            <File>
               <FileName>pin_level_scan.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\pin_level_scan.c</FilePath>
@@ -487,11 +477,6 @@
               <FilePath>..\..\User\mileage.c</FilePath>
             </File>
             <File>
-              <FileName>instruction.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\instruction.c</FilePath>
-            </File>
-            <File>
               <FileName>ad_key.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\ad_key.c</FilePath>
@@ -510,6 +495,16 @@
               <FileName>touch_key.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\touch_key.c</FilePath>
+            </File>
+            <File>
+              <FileName>instrument.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\instrument.c</FilePath>
+            </File>
+            <File>
+              <FileName>aip3368h_display.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\aip3368h_display.c</FilePath>
             </File>
           </Files>
         </Group>

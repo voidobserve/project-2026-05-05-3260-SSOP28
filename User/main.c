@@ -18,11 +18,25 @@
 /* Includes ------------------------------------------------------------------*/
 #include "include.h"
 #include "my_config.h"
+#include "string.h"
+
+#if USER_DEBUG_ENABLE
+void debug_pin_init(void)
+{
+    P2_MD0 &= ~GPIO_P23_MODE_SEL(0x03);
+    P2_MD0 |= GPIO_P23_MODE_SEL(0x01); // 输出模式
+    FOUT_S23 = GPIO_FOUT_AF_FUNC;
+    DEBUG_PIN = 0;
+}
+#endif
 
 void user_init(void)
 {
-
-    tmr1_config(); // 检测一段时间内的脉冲个数所需的定时器(用于计时)
+#if USER_DEBUG_ENABLE
+    debug_pin_init();
+    uart0_debug_init();
+    printf("sys reset\n");
+#endif
 
 #if SPEED_SCAN_ENABLE
     speed_scan_config(); // 时速扫描的配置
@@ -40,18 +54,11 @@ void user_init(void)
     tk_param_init(); // 触摸按键模块初始化
 #endif
 
-    tmr2_config(); // 扫描脉冲(电平变化)的定时器
+    instrument_info_init(); // 初始化仪表信息
+    aip3368h_module_init();
 
-    // iic_config();
-    // eeprom_24cxx_clear(); // 全片擦除
-
-    // printf("begin read eeprom\n");
-    fun_info_init(); // 初始化用于存放信息的变量
-
-#if USER_DEBUG_ENABLE
-    uart0_debug_init();
-    printf("sys reset\n");
-#endif
+    tmr1_config(); //
+                   //     tmr2_config(); // 扫描脉冲(电平变化)的定时器
 
     delay_ms(1); // 等待系统稳定
                  // delay_ms(2000); // 等待系统稳定
@@ -72,17 +79,16 @@ void main(void)
     /* 用户代码初始化接口 */
     user_init();
 
-    // 上电后，需要点亮一下所有的指示灯，再关闭:
-    P23 = 1;
-    delay_ms(1000);
-    P23 = 0;
-
     // USER_TO_DO 上电之后，需要先跑一遍开机动画，再继续主循环
+
+    //     memset(aip3368h_display_buff, 0xFF, sizeof(aip3368h_display_buff));
+    aip3368h_display_buff[0] = 0x01;
 
     /* 系统主循环 */
     while (1)
     {
         // printf("main circle\n");
+        // DEBUG_PIN = ~DEBUG_PIN;
 
 #if 1
         WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗并清除 wdt_pending
@@ -102,25 +108,37 @@ void main(void)
         key_driver_scan(&touch_key_para);
         touch_key_handle(); // 触摸按键处理函数
 #endif
+
 #if SPEED_SCAN_ENABLE
-        speed_scan(); // 检测时速
+        // speed_scan(); // 检测时速
 #endif
 
-        mileage_scan(); // 检测大计里程和小计里程
+        // mileage_scan(); // 检测大计里程和小计里程
 
 #if ENGINE_SPEED_SCAN_ENABLE
-        engine_speed_scan(); // 检测发动机转速
+        // engine_speed_scan(); // 检测发动机转速
 #endif
 
 #if FUEL_CAPACITY_SCAN_ENABLE
-        fuel_capacity_scan(); // 油量检测
+        // fuel_capacity_scan(); // 油量检测
 #endif
 
 #if BATTERY_SCAN_ENABLE
-        battery_scan(); // 电池电量检测
+        // battery_scan(); // 电池电量检测
 #endif
 
 #endif //
+
+        aip3368h_module_display();
+        // DCK = 1;
+        // delay_ms(1);
+        // DCK = 0;
+        // delay_ms(1);
+
+        // LAT = 1;
+        // delay_ms(10);
+        // LAT = 0;
+        // delay_ms(10);
     }
 }
 

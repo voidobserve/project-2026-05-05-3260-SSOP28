@@ -2,9 +2,16 @@
 
 #if FUEL_CAPACITY_SCAN_ENABLE
 
+static volatile u16 adc_val_of_fuel = 0;
+
 
 volatile u32 fuel_capacity_scan_cnt = 0; // 扫描时间计数，在1ms定时器中断中累加
  
+
+void adc_update_fuel_val(u16 adc_val)
+{
+    adc_val_of_fuel = adc_val;
+}
 
 // 滑动平均：
 #define SAMPLE_COUNT 20 // 样本计数
@@ -36,40 +43,7 @@ void samples_init(u16 adc_val)
 
 // 将油量检测对应的ad值转换成百分比值
 u8 convert_fuel_adc_to_percent(u16 fuel_adc_val)
-{
-#if 0
-    u8 ret = 0;
-
-    // 如果超出了 最大油量的ad值和最小油量的ad值之间的范围 ，说明没有接油量检测
-    if (fuel_adc_val >= (4095 - 500) ||
-        fuel_adc_val <= (0 + 500))
-    {
-        ret = 0xFF; // 根据串口收发协议，0xFF对应没有接油量检测
-    }
-    else
-    {
-        if (fuel_adc_val > FUEL_MIN_ADC_VAL) // 如果检测到的ad值比最小油量对应的ad值还要小
-        {
-            ret = 0; // 0% 油量
-        }
-        else if (fuel_adc_val < FUEL_MAX_ADC_VAL) // 如果检测到的油量比100%还要大一些
-        {
-            ret = 100;
-        }
-        else
-        {
-            // u16 tmp_val = (FUEL_MAX_ADC_VAL - FUEL_MIN_ADC_VAL) / 100; /* 将油量最大的ad值和油量最小对应的ad值 划成100份 */
-            // ret = (fuel_adc_val - FUEL_MIN_ADC_VAL) / tmp_val;
-
-            u16 tmp_val = (FUEL_MIN_ADC_VAL - FUEL_MAX_ADC_VAL) / 100; /* 将油量最大的ad值和油量最小对应的ad值 划成100份 */
-            ret = (fuel_adc_val - FUEL_MAX_ADC_VAL) / tmp_val;
-        }
-    }
-
-    return ret;
-#endif
-
-#if 1
+{ 
     u8 ret = 0;
 
     // // 如果超出了 最大油量的ad值和最小油量的ad值之间的范围 ，说明没有接油量检测
@@ -158,8 +132,7 @@ u8 convert_fuel_adc_to_percent(u16 fuel_adc_val)
     // ret = 51; // 51及以上，显示4格
     // ret = 68; // 68及以上，显示5格
     // ret = 84; // 84及以上，显示6格
-    return ret;
-#endif
+    return ret; 
 }
 
 enum
@@ -173,8 +146,8 @@ void fuel_capacity_scan(void)
     u8 fuel_percent = 0;
     u16 fuel_adc_val = 0;
 
-    adc_sel_pin(ADC_PIN_FUEL); // 内部至少占用1ms
-    adc_val = adc_getval();    //
+    // adc_sel_pin(ADC_PIN_FUEL); // 内部至少占用1ms
+    // adc_val = adc_getval();    //
     fuel_adc_val = get_filtered_adc(adc_val);
     // printf("fuel_adc_val: %u\n", fuel_adc_val);
 
@@ -202,10 +175,10 @@ void fuel_capacity_scan(void)
                 fuel_percent = convert_fuel_adc_to_percent(fuel_adc_val);
 
                 // printf("power on, fuel_percent:%bu\n", fuel_percent);
-                fun_info.fuel = fuel_percent;
+                instrument.fuel = fuel_percent;
                 // fuel_adc_scan_cnt = 0;
                 fuel_adc_val = 0;
-                flag_get_fuel = 1;
+                // flag_get_fuel = 1;
 
                 status = STATUS_IN_SERVICE;
             }
@@ -222,10 +195,10 @@ void fuel_capacity_scan(void)
         fuel_percent = convert_fuel_adc_to_percent(fuel_adc_val);
 
         // printf("fuel_percent:%bu\n", fuel_percent);
-        fun_info.fuel = fuel_percent;
+        instrument.fuel = fuel_percent;
         // fuel_adc_scan_cnt = 0;
         fuel_adc_val = 0;
-        flag_get_fuel = 1;
+        // flag_get_fuel = 1;
     } //  if (fuel_capacity_scan_cnt >= FUEL_UPDATE_TIME)
 }
 

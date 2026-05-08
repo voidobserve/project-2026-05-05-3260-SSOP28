@@ -1,14 +1,23 @@
 #include "aip3368.h"
 
-#include "my_config.h"
+#include "string.h" // memset
 
 #if 1 // AIP3368H_MODULE
 
-
+static volatile u16 aip3368h_refresh_cnt = 0;
 
 // 显存
 volatile u16 aip3368h_display_buff[AIP3368H_DEV_NUM];
 
+// 放在1ms的定时器中
+void aip3368h_refresh_time_add(void)
+{
+    // 防止计数溢出
+    // if (aip3368h_refresh_cnt < 255)
+    {
+        aip3368h_refresh_cnt++;
+    }
+}
 
 static void aip3368h_module_send_data_to_one_dev(u16 dat)
 {
@@ -17,7 +26,7 @@ static void aip3368h_module_send_data_to_one_dev(u16 dat)
 
     for (i = 0; i < 16; i++)
     {
-        DIO = dat & 0x8000 ? 1 : 0;
+        DIO = dat & (u16)0x8000 ? 1 : 0;
 
         aip3368h_delay();
         DCK = 1;
@@ -54,44 +63,62 @@ static void aip3368h_module_send_data_to_all_dev(u16 *buff, u8 len)
     // PDM = 0;
     aip3368h_delay();
     DIO = 0;
-    
+
     // EA = 1;
 }
 
-#define AIP3368H_FLASH_TEST_ENABLE          0
+#define AIP3368H_FLASH_TEST_ENABLE 0
 void aip3368h_module_display(void)
 {
-    if (!systimer_flag_is_valid(SYSTIME_FLAG_50MS))
+    // if (!systimer_flag_is_valid(SYSTIME_FLAG_50MS))
+    //     return;
+
+    // 刷新间隔 单位：ms
+    if (aip3368h_refresh_cnt < 500)
+    {
         return;
+    }
+    else
+    {
+        aip3368h_refresh_cnt = 0;
+        // DEBUG_PIN = ~DEBUG_PIN;
+    }
 
 #if AIP3368H_FLASH_TEST_ENABLE
     // 闪烁测试
-    if ( aip3368h_display_buff[0] == 0x0000)
-        memset( aip3368h_display_buff, 0xFF, sizeof( aip3368h_display_buff));
+    if (aip3368h_display_buff[0] == 0x0000)
+        memset(aip3368h_display_buff, 0xFF, sizeof(aip3368h_display_buff));
     else
-        memset( aip3368h_display_buff, 0x00, sizeof( aip3368h_display_buff));
+        memset(aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
 #endif
 
-    aip3368h_module_send_data_to_all_dev( aip3368h_display_buff, AIP3368H_DEV_NUM);
+    aip3368h_module_send_data_to_all_dev(aip3368h_display_buff, AIP3368H_DEV_NUM);
 }
 
 void aip3368h_module_clear(void)
 {
-    memset( aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
+    memset(aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
     aip3368h_module_send_data_to_all_dev(aip3368h_display_buff, AIP3368H_DEV_NUM);
 }
 
 void aip3368h_module_init(void)
 {
     // memset(aip3368h_display_buff, 0xF0, sizeof(aip3368h_display_buff));
-    for(act_tmp=0;act_tmp<16;act_tmp++){
-		aip3368h_display_buff[act_tmp]=0x0000;
-	}
+    memset(aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
 
-    GPIO_Init(P05F, OUTPUT);
-    GPIO_Init(P06F, OUTPUT);
-    GPIO_Init(P07F, OUTPUT);
-    GPIO_Init(P34F, OUTPUT);
+    // DCK
+    P1_MD1 &= ~GPIO_P16_MODE_SEL(0x03);
+    P1_MD1 |= GPIO_P16_MODE_SEL(0x01);
+    FOUT_S16 = GPIO_FOUT_AF_FUNC;
+    // DIO
+    P2_MD1 &= ~GPIO_P25_MODE_SEL(0x03);
+    P2_MD1 |= GPIO_P25_MODE_SEL(0x01);
+    FOUT_S25 = GPIO_FOUT_AF_FUNC;
+    // LAT
+    P2_MD1 &= ~GPIO_P24_MODE_SEL(0x03);
+    P2_MD1 |= GPIO_P24_MODE_SEL(0x01);
+    FOUT_S24 = GPIO_FOUT_AF_FUNC;
+
     DIO = 0;
     DCK = 0;
     LAT = 0;
@@ -99,13 +126,12 @@ void aip3368h_module_init(void)
     aip3368h_module_send_data_to_all_dev(aip3368h_display_buff, AIP3368H_DEV_NUM);
 }
 
-void aip3368h_module_uninit(void)
-{
-    aip3368h_module_clear();    // 清屏
-    GPIO_Init(P05F, 0);
-    GPIO_Init(P06F, 0);
-    GPIO_Init(P07F, 0);
-    GPIO_Init(P34F, 0);
-}
+// void aip3368h_module_uninit(void)
+// {
+//     aip3368h_module_clear();    // 清屏
+//     DIO = 0;
+//     DCK = 0;
+//     LAT = 0;
+// }
 
 #endif

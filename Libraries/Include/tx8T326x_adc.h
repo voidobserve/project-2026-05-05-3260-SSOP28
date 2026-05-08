@@ -14,8 +14,8 @@
   */ 
   
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __ADC_H__
-#define __ADC_H__
+#ifndef __TX8T326XADC_H__
+#define __TX8T326XADC_H__
 
 #ifdef __cplusplus
  extern "C" {
@@ -376,7 +376,7 @@
 }
 #endif
 
-#endif // __ADC_H__
+#endif //  
 
 /**
   * @}

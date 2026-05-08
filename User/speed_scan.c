@@ -76,14 +76,14 @@ void speed_scan(void)
         cur_speed_scan_time = 0;
         flag_is_speed_scan_over_time = 0;
 
-        fun_info.speed = cur_speed;
+        instrument.speed = cur_speed;
         // 限制要发送的时速:
-        // if (fun_info.speed > 999)
+        // if (instrument.speed > 999)
         // {
-        //     fun_info.speed = 999;
+        //     instrument.speed = 999;
         // }
 
-        flag_get_speed = 1; // 表示速度有数据更新
+        // flag_get_speed = 1; // 表示速度有数据更新
     } // if (cur_speed_scan_time >= 500 || flag_is_speed_scan_over_time)
 }
 

@@ -63,7 +63,7 @@ enum
 //     OPERATION_SET_TEMP_OF_WATER_WARNING_OFF,      // 关闭水温报警
 // };
 
-extern volatile bit flag_get_all_status; // 获取所有功能的状态
+// extern volatile bit flag_get_all_status; // 获取所有功能的状态
 extern volatile bit flag_get_gear;       // 获取挡位状态 / 得到了挡位的状态
 extern volatile bit flag_get_battery;    // 获取电池电量的状态/ 得到了电池的状态（电池电量，单位：百分比）
 // extern volatile bit flag_get_brake;        // 获取刹车状态 / 得到了刹车的状态

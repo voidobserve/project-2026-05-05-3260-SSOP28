@@ -11,8 +11,8 @@ volatile u16 mileage_update_time_cnt; // 里程更新的时间计数,每隔一�
 void mileage_scan(void)
 {
     // 下面这组变量用来控制每走过一段距离时，发送里程数据
-    static u32 old_total_mileage;      // 用来记录旧的大计里程的变量
-    static u32 old_subtotal_mileage;   // 用来记录旧的小计里程的变量
+    static u32 old_total_mileage;    // 用来记录旧的大计里程的变量
+    static u32 old_subtotal_mileage; // 用来记录旧的小计里程的变量
     // static u32 old_subtotal_mileage_2; // 用来记录旧的小计里程2的变量
 
     /*
@@ -28,34 +28,30 @@ void mileage_scan(void)
     if ((mileage_save_time_cnt >= 1000) && /* 1s后 */
         flag_is_any_mileage_save)          /* 里程有变化，需要保存 */
     {
-        fun_info_save();
+        // fun_info_save();
+        instrument_info_save();
         flag_is_any_mileage_save = 0;
         mileage_save_time_cnt = 0;
 
         // printf("mile save\n");
 
-        // printf("total_mileage %lu\n", fun_info.save_info.total_mileage);
-        // printf("sub_total_mileage %lu\n", fun_info.save_info.subtotal_mileage);
-        // printf("sub_total_mileage_2 %lu\n", fun_info.save_info.subtotal_mileage_2);
+        // printf("total_mileage %lu\n", instrument.save_info.total_mileage);
+        // printf("sub_total_mileage %lu\n", instrument.save_info.subtotal_mileage);
+        // printf("sub_total_mileage_2 %lu\n", instrument.save_info.subtotal_mileage_2);
     }
 
     if (distance >= 1000) // 1000mm -- 1m
     {
         // 如果走过的距离超过了1m，再进行保存（保存到变量）
-        if (fun_info.save_info.total_mileage < (u32)(999999 * 1000)) // 99 9999 KM
+        if (instrument.save_info.total_mileage < (u32)(999999 * 1000)) // 99 9999 KM
         {
-            fun_info.save_info.total_mileage++; // +1m
+            instrument.save_info.total_mileage++; // +1m
         }
 
-        if (fun_info.save_info.subtotal_mileage < (u32)(9999999)) // 9999.9KM， 9999 999 m
+        if (instrument.save_info.subtotal_mileage < (u32)(9999999)) // 9999.9KM， 9999 999 m
         {
-            fun_info.save_info.subtotal_mileage++; // +1m
+            instrument.save_info.subtotal_mileage++; // +1m
         }
-
-        // if (fun_info.save_info.subtotal_mileage_2 < (u32)(9999999)) // 9999.9KM， 9999 999 m
-        // {
-        //     fun_info.save_info.subtotal_mileage_2++; // +1m
-        // }
 
         distance -= 1000; // 剩下的、未保存的、不满1m的数据留到下一次再保存
 
@@ -71,36 +67,26 @@ void mileage_scan(void)
     }
 
     // 如果大计里程有变化且超过了100m(不能满1000m再发送，在显示上，会先更新大计里程，过几百ms才更新小计里程)
-    if ((fun_info.save_info.total_mileage - old_total_mileage) > 100)
+    if ((instrument.save_info.total_mileage - old_total_mileage) > 100)
     {
-        old_total_mileage = fun_info.save_info.total_mileage; // 记录旧的里程
+        old_total_mileage = instrument.save_info.total_mileage; // 记录旧的里程
 
-        // printf("total mileage: %lu m\n", fun_info.save_info.total_mileage);
+        // printf("total mileage: %lu m\n", instrument.save_info.total_mileage);
 
         // 发送数据的操作，可以先置标志位
-        flag_get_total_mileage = 1;
+        // flag_get_total_mileage = 1;
     }
 
     // 如果小计里程有变化且超过了100m
-    if ((fun_info.save_info.subtotal_mileage - old_subtotal_mileage) > 100)
+    if ((instrument.save_info.subtotal_mileage - old_subtotal_mileage) > 100)
     {
-        old_subtotal_mileage = fun_info.save_info.subtotal_mileage; // 记录旧的里程
+        old_subtotal_mileage = instrument.save_info.subtotal_mileage; // 记录旧的里程
 
-        // printf("subtotal mileage: %lu m\n", fun_info.save_info.subtotal_mileage);
+        // printf("subtotal mileage: %lu m\n", instrument.save_info.subtotal_mileage);
 
         // 发送数据的操作，可以先置标志位
-        flag_get_sub_total_mileage = 1;
+        // flag_get_sub_total_mileage = 1;
     }
-
-    // if ((fun_info.save_info.subtotal_mileage_2 - old_subtotal_mileage_2) > 100)
-    // {
-    //     old_subtotal_mileage_2 = fun_info.save_info.subtotal_mileage_2; // 记录旧的里程
-
-    //     // printf("subtotal mileage_2: %lu m\n", fun_info.save_info.subtotal_mileage_2);
-
-    //     // 发送数据的操作，可以先置标志位
-    //     flag_get_sub_total_mileage_2 = 1;
-    // }
 
     if (mileage_update_time_cnt >= MILEAGE_UPDATE_TIME_MS)
     {
@@ -111,17 +97,16 @@ void mileage_scan(void)
 
         if (0 == is_send_total_mileage)
         {
-            
-            flag_get_sub_total_mileage = 1;
+
+            // flag_get_sub_total_mileage = 1;
         }
         else
         {
-            flag_get_total_mileage = 1; //
+            // flag_get_total_mileage = 1; //
         }
 
         is_send_total_mileage = !is_send_total_mileage;
-        
-        
+
         // flag_get_sub_total_mileage_2 = 1;
     }
 }

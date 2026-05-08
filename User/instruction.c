@@ -4,7 +4,7 @@
 
 // 用bit定义，来节省空间
 // 下面的标志位，有可能是从串口接收到了指令来置位，也有可能是其他的扫描函数更新了状态来置位
-volatile bit flag_get_all_status; // 获取所有功能的状态
+// volatile bit flag_get_all_status; // 获取所有功能的状态
 volatile bit flag_get_gear;       // 获取挡位状态 / 得到了挡位的状态
 volatile bit flag_get_battery;    // 获取电池状态 / 得到了电池的状态（电池电量，单位：百分比）
 // volatile bit flag_get_brake;        // 获取刹车状态 / 得到了刹车的状态

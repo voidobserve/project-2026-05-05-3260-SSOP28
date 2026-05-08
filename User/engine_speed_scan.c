@@ -5,8 +5,7 @@
 // 发动机转速的相关配置
 void engine_speed_scan_config(void)
 {
-    // 使用定时器扫描IO电平的方式
-
+    // 使用定时器扫描IO电平的方式 
     P0_MD0 &= ~GPIO_P02_MODE_SEL(0x3); // 输入模式
     P0_PU |= GPIO_P02_PULL_UP(0x01);   // 上拉
 }
@@ -80,8 +79,8 @@ void engine_speed_scan(void)
 
         // printf("cur rpm %lu\n", rpm);
 
-        fun_info.engine_speeed = rpm; // 向全局变量存放发动机转速
-        flag_get_engine_speed = 1;    // 发送发动机转速
+        instrument.engine_speeed = rpm; // 向全局变量存放发动机转速
+        // flag_get_engine_speed = 1;    // 发送发动机转速
 #endif
 
         // engine_speed_buff_update(rpm);
@@ -116,7 +115,7 @@ void engine_speed_buff_update(u32 engine_speed)
         }
 
         // // 没有差值，直接更新（修复没有差值且数值为0时，没有发送数据的问题）
-        // fun_info.engine_speeed = engine_speed;
+        // instrument.engine_speeed = engine_speed;
         // flag_get_engine_speed = 1;
 
         cur_send_engine_speed_buff_index = 0; // 游标复位
@@ -159,10 +158,10 @@ void engine_speed_send_data(void)
             return;
         }
 
-        fun_info.engine_speeed = engine_speed_buff[cur_send_engine_speed_buff_index];
+        instrument.engine_speeed = engine_speed_buff[cur_send_engine_speed_buff_index];
         cur_send_engine_speed_buff_index++;
 
-        // printf("fun_info.engine_speed = %lu\n", fun_info.engine_speeed);
+        // printf("instrument.engine_speed = %lu\n", instrument.engine_speeed);
         flag_get_engine_speed = 1;
     }
 }

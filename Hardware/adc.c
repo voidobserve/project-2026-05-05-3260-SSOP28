@@ -3,7 +3,8 @@
 #if (BATTERY_SCAN_ENABLE || AD_KEY_ENABLE || FUEL_CAPACITY_SCAN_ENABLE || TEMP_OF_WATER_SCAN_ENABLE)
 
 volatile u16 adc_val; // adc值，0~4095
-// bit adc_done_flag = 0; // adc转换完成标志
+// 控制切换adc通道的状态机：
+static volatile u8 adc_channel_status = ADC_CHANNEL_STATUS_NONE;
 
 // adc配置，使用adc时还需要切换到对应的引脚通道
 void adc_config(void)
@@ -28,76 +29,63 @@ void adc_config(void)
 // P0_MD0 |= GPIO_P00_MODE_SEL(0x3); // 模拟模式
 #endif // TEMP_OF_WATER_SCAN_ENABLE
 
-    ADC_CFG1 |= (0x0F << 3); // ADC时钟分频为16分频，为系统时钟/16
-    ADC_CFG2 = 0xFF;         // 通道0采样时间配置为256个采样时钟周期
+    ADC_CFG1 |= (0x0F << 3) | // ADC时钟分频为16分频，为系统时钟/16
+                (0x01 << 0);  // adc0中断使能
+    ADC_CFG2 = 0xFF;          // 通道0采样时间配置为256个采样时钟周期
 
-    // ADC配置
-    // ADC_ACON1 &= ~(ADC_VREF_SEL(0x7) | ADC_EXREF_SEL(0x1)); // 清除电压选择，关闭外部参考电压
-    // ADC_ACON1 &= ~(ADC_INREF_SEL(0x01));                    // 关闭内部参考电压
-    // ADC_ACON1 |= ADC_VREF_SEL(0x06) | ADC_TEN_SEL(0x3); // 选择内部VCCA作为参考电压（需要关闭ADC内部和外部的参考选择信号），关闭测试信号
-
-    ADC_ACON1 &= ~((0x01 << 6) | (0x01 << 5) | (0x07 << 0)); // 关闭ADC中内部参考能使信号，关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-    ADC_ACON1 |= (0x03 << 3) | (0x06 << 0);                  // 关闭测试信号，选择内部VCCA作为参考电压（使用VCCA作为参考电压，需要关闭内部使能参考和外部使能参考）
-    ADC_ACON0 = ADC_CMP_EN(0x1) |                            // 打开ADC中的CMP使能信号
-                ADC_BIAS_EN(0x1) |                           // 打开ADC偏置电流能使信号
-                ADC_BIAS_SEL(0x1);                           // 偏置电流选择：1x
+    ADC_ACON0 = ADC_CMP_EN(0x1) |  // 打开ADC中的CMP使能信号
+                ADC_BIAS_EN(0x1) | // 打开ADC偏置电流能使信号
+                ADC_BIAS_SEL(0x1); // 偏置电流选择：1x
 
     ADC_TRGS0 |= (0x07 << 4); // 通道 0DLY 的 ADC 时钟个数选择，配置为 4n+1，4 * 29 + 1
     ADC_CHS0 |= (0x01 << 6);  // 使能 通道 0DLY 功能
+    __EnableIRQ(ADC_IRQn);    // 使能ADC中断
+    IE_EA = 1;                // 使能总中断
 }
 
-// 切换adc扫描的引脚
-// adc_pin--adc引脚，在对应的枚举类型中定义
-void adc_sel_pin(u8 adc_pin)
+// 设置adc通道
+void adc_channel_set(adc_channel_t adc_channel)
 {
-    ADC_CHS0 &= ~((0x01 << 4) | (0x01 << 3) | (0x01 << 2) | (0x01 << 1) | (0x01 << 0)); // 清空选择的adc0通路
+    ADC_CHS0 &= ~((0x01 << 4) |
+                  (0x01 << 3) |
+                  (0x01 << 2) |
+                  (0x01 << 1) |
+                  (0x01 << 0)); // 清空选择的adc0通路
 
-    switch (adc_pin)
+    switch (adc_channel)
     {
 #if BATTERY_SCAN_ENABLE
-    case ADC_PIN_BATTERY:                                     // 检测电池电量
-        ADC_ACON1 &= ~((0x01 << 5) | (0x07 << 0));            // 关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-        ADC_ACON1 |= (0x01 << 6) | (0x03 << 3) | (0x02 << 0); // 使能ADC内部参考信号，关闭测试信号内部参考电压选择2.4V
-        ADC_CHS0 |= ADC_ANALOG_CHAN(0x04);                    // P04通路
-        break;
-#endif
 
-#if AD_KEY_ENABLE
-    // case ADC_PIN_TOUCH:                    // 检测触摸IC传过来的电压
-    case ADC_PIN_KEY:                                            // 检测ad按键
-        ADC_ACON1 &= ~((0x01 << 6) | (0x01 << 5) | (0x07 << 0)); // 关闭ADC中内部参考能使信号，关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-        ADC_ACON1 |= (0x03 << 3) | (0x06 << 0);                  // 关闭测试信号，选择内部VCCA作为参考电压（使用VCCA作为参考电压，需要关闭内部使能参考和外部使能参考）
-        ADC_CHS0 |= ADC_ANALOG_CHAN(0x05);                       // P05通路
-
+    case ADC_CHANNEL_BATTERY:                      // 检测电池电量
+        ADC_ACON1 &= ~((0x01 << 5) | (0x07 << 0)); // 关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
+        ADC_ACON1 |= (0x01 << 6) |                 // 使能ADC内部参考信号
+                     (0x03 << 3) |                 // 关闭测试信号
+                     (0x02 << 0);                  // 内部参考电压选择2.4V
+        ADC_CHS0 |= ADC_ANALOG_CHAN(0x04);         // P04通路
         break;
+
 #endif
 
 #if FUEL_CAPACITY_SCAN_ENABLE
-    case ADC_PIN_FUEL: // 检测油量
+
+    case ADC_CHANNEL_FUEL: // 检测油量
 
         //    ADC_ACON1 &= ~((0x01 << 6) | (0x01 << 5) | (0x07 << 0)); // 关闭ADC中内部参考能使信号，关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
         //    ADC_ACON1 |= (0x03 << 3) | (0x06 << 0);                  // 关闭测试信号，选择内部VCCA作为参考电压（使用VCCA作为参考电压，需要关闭内部使能参考和外部使能参考）
 
-        ADC_ACON1 &= ~((0x01 << 5) | (0x07 << 0));            // 关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-        // ADC_ACON1 |= (0x01 << 6) | (0x03 << 3) | (0x01 << 0); // 使能ADC内部参考信号，关闭测试信号，内部参考电压选择2.0V
-        ADC_ACON1 |= (0x01 << 6) | (0x03 << 3) | (0x03 << 0); // 使能ADC内部参考信号，关闭测试信号，内部参考电压选择3.0V
-        ADC_CHS0 |= ADC_ANALOG_CHAN(0x01);                    // P01通路
+        ADC_ACON1 &= ~((0x01 << 5) | (0x07 << 0)); // 关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
+        ADC_ACON1 |= (0x01 << 6) |                 // 使能ADC内部参考信号
+                     (0x03 << 3) |                 // 关闭测试信号
+                     (0x03 << 0);                  // 内部参考电压选择3.0V
+        ADC_CHS0 |= ADC_ANALOG_CHAN(0x01);         // P01通路
         break;
-#endif
 
-#if TEMP_OF_WATER_SCAN_ENABLE
-    case ADC_PIN_TEMP_OF_WATER: // 检测水温的引脚
-        // ADC_ACON1 &= ~((0x01 << 6) | (0x01 << 5) | (0x07 << 0)); // 关闭ADC中内部参考能使信号，关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-        // ADC_ACON1 |= (0x03 << 3) | (0x06 << 0);                  // 关闭测试信号，选择内部VCCA作为参考电压（使用VCCA作为参考电压，需要关闭内部使能参考和外部使能参考）
-        // ADC_CHS0 = ADC_ANALOG_CHAN(0x00);                        // P00通路
-        break;
 #endif
     }
 
     ADC_CFG0 |= ADC_CHAN0_EN(0x1) | // 使能通道0转换
                 ADC_EN(0x1);        // 使能A/D转换
-
-    delay_ms(1); // 等待ADC模块配置稳定，需要等待20us以上
+    // 切换完通道后，需要等待ADC模块配置稳定，至少20us以上
 }
 
 // 获取adc值，存放到变量adc_val中(adc单次转换)
@@ -136,6 +124,64 @@ u16 adc_getval(void)
     adc_val_tmp = (adc_val_sum >> 4); // 除以16，取平均值
 
     return adc_val_tmp;
+}
+
+// 由定时器调用，adc通道切换
+void adc_channel_switch_by_isr(void)
+{
+    switch (adc_channel_status)
+    {
+    case ADC_CHANNEL_STATUS_NONE:
+    case ADC_CHANNEL_STATUS_SEL_FUEL_END:
+        // 默认状态或者是已经采集完油量对应的ad值，转换到下一个通道
+        adc_channel_set(ADC_CHANNEL_BATTERY);
+        adc_channel_status = ADC_CHANNEL_STATUS_SEL_BATTERY_BEGIN;
+        break;
+    case ADC_CHANNEL_STATUS_SEL_BATTERY_BEGIN:
+        ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // 触发ADC0转换
+        adc_channel_status = ADC_CHANNEL_STATUS_SEL_BATTERY_END;
+        break;
+    case ADC_CHANNEL_STATUS_SEL_BATTERY_END:
+        adc_channel_set(ADC_CHANNEL_FUEL);
+        adc_channel_status = ADC_CHANNEL_STATUS_SEL_FUEL_BEGIN;
+        break;
+    case ADC_CHANNEL_STATUS_SEL_FUEL_BEGIN:
+        ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // 触发ADC0转换
+        adc_channel_status = ADC_CHANNEL_STATUS_SEL_FUEL_END;
+        break;
+
+    default:
+        break;
+    }
+}
+
+void ADC_IRQHandler(void) interrupt ADC_IRQn
+{
+    u16 adc_val; // 由后续赋值
+
+    // 进入中断设置IP，不可删除
+    __IRQnIPnPush(ADC_IRQn);
+
+    // ---------------- 用户函数处理 -------------------
+    if (ADC_STA & ADC_CHAN0_DONE(0x01))
+    {
+        ADC_STA |= ADC_CHAN0_DONE(0x01);                 // 清除ADC0转换完成标志位
+        adc_val = (ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4); // 读取ADC0的值
+
+        switch (adc_channel_status)
+        {
+        case ADC_CHANNEL_STATUS_SEL_BATTERY_END:
+            adc_update_battery_val(adc_val);
+            break;
+
+        case ADC_CHANNEL_STATUS_SEL_FUEL_END:
+            adc_update_fuel_val(adc_val);
+            break;
+        }
+    }
+
+    // 退出中断设置IP，不可删除
+    __IRQnIPnPop(ADC_IRQn);
 }
 
 #endif // #if (BATTERY_SCAN_ENABLE || AD_KEY_ENABLE || FUEL_CAPACITY_SCAN_ENABLE || TEMP_OF_WATER_SCAN_ENABLE)

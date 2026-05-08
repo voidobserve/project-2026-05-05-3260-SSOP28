@@ -41,5 +41,7 @@ extern u32 fuel_capacity_scan_cnt; // 扫描时间计数，在1ms定时器中断
 
 void fuel_capacity_scan(void);
 
+void adc_update_fuel_val(u16 adc_val);
+
 #endif //  
 #endif

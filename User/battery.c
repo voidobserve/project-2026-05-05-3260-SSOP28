@@ -2,7 +2,14 @@
 
 #if BATTERY_SCAN_ENABLE
 
+static volatile u16 adc_val_of_battery; // 电池电压对应的ad值
+
 volatile u16 battery_scan_time_cnt; // 电池扫描时间计时（在定时器中累加）
+
+void adc_update_battery_val(u16 adc_val)
+{
+    adc_val_of_battery = adc_val; 
+} 
 
 /**
  * @brief 将ad值转换为对应的电压值
@@ -19,8 +26,8 @@ u16 conver_adc_val_to_voltage(u16 arg_adc_val)
     */
     // return (u32)arg_adc_val * MAX_VOLTAGE_OF_BATTERY / 4096;
 
-    // 使用2.4V参考电压，12位精度
-    // 电池电压是 1/11 分压：
+    // 使用2.4V参考电压，12位精度（0 ~ 4095）
+    // 电池电压 1/11 分压：
     return (u32)arg_adc_val * 240 * 11 / 10 / 4096;
 }
 
@@ -57,8 +64,10 @@ void battery_scan(void)
     static bit flag_is_power_on_first = 1; // 是否第一次上电
 
 #if 1
-    adc_sel_pin(ADC_PIN_BATTERY);
-    battery_val += adc_getval(); // 可能要防止计数溢出
+    // USER_TO_DO 可能要用 static 类型的变量存放ad值，需要注意等初始化完成才能使用
+    // USER_TO_DO 可能要改成滑动平均的方式
+    // adc_sel_pin(ADC_PIN_BATTERY);
+    // battery_val += adc_getval(); // 可能要防止计数溢出
     battery_scan_cnt++;          // 上面采集到一次ad值之后，这里加一表示采集了一次
 
     if (flag_is_power_on_first)
@@ -71,14 +80,16 @@ void battery_scan(void)
         battery_scan_cnt = 0;      // 清空计数值
         battery_scan_time_cnt = 0; // 清空时间计数值
 
-        fun_info.battery = cur_percentage_of_battery;
-        fun_info.voltage_of_battery = voltage_of_battery;
+        instrument.battery = cur_percentage_of_battery;
+        instrument.voltage_of_battery = voltage_of_battery;
+
+
 
         // printf("cur voltage of battery : %bu\n", voltage_of_battery);
         // printf("cur percent of battery : %bu\n", cur_percentage_of_battery);
 
-        flag_get_voltage_of_battery = 1;
-        flag_get_battery = 1;
+        // flag_get_voltage_of_battery = 1;
+        // flag_get_battery = 1;
 
         flag_is_power_on_first = 0;
     }
@@ -95,44 +106,19 @@ void battery_scan(void)
             battery_scan_cnt = 0;      // 清空计数值
             battery_scan_time_cnt = 0; // 清空时间计数值
 
-            fun_info.battery = cur_percentage_of_battery;
-            fun_info.voltage_of_battery = voltage_of_battery;
+            instrument.battery = cur_percentage_of_battery;
+            instrument.voltage_of_battery = voltage_of_battery;
 
             // printf("cur voltage of battery : %bu\n", voltage_of_battery);
             // printf("cur percent of battery : %bu\n", cur_percentage_of_battery);
 
-            flag_get_voltage_of_battery = 1;
-            flag_get_battery = 1;
+            // flag_get_voltage_of_battery = 1;
+            // flag_get_battery = 1;
         }
     }
 
 #endif
-
-#if 0
-    adc_sel_pin(ADC_PIN_BATTERY);
-    // battery_val += adc_getval(); // 可能要防止计数溢出
-    // battery_scan_cnt++; // 上面采集到一次ad值之后，这里加一表示采集了一次
-    if (battery_scan_time_cnt >= BATTERY_SCAN_UPDATE_TIME_MS) // 如果到了电池数据的更新时间（更新/发送电池数据的时间）
-    {
-        // battery_val /= battery_scan_cnt; // 取平均数
-        // battery_val = adc_getval();
-        battery_val = adc_single_convert();
-        voltage_of_battery = conver_adc_val_to_voltage(battery_val);
-        cur_percentage_of_battery = conver_voltage_of_battery_to_percentage(voltage_of_battery);
-        battery_val = 0;           // 清空数值
-        battery_scan_cnt = 0;      // 清空计数值
-        battery_scan_time_cnt = 0; // 清空时间计数值
-
-        fun_info.battery = cur_percentage_of_battery;
-        fun_info.voltage_of_battery = voltage_of_battery;
-
-        // printf("cur voltage of battery : %bu\n", voltage_of_battery);
-        // printf("cur percent of battery : %bu\n", cur_percentage_of_battery);
-
-        flag_get_voltage_of_battery = 1;
-        flag_get_battery = 1;
-    }
-#endif
+ 
 }
 
 #endif // BATTERY_SCAN_ENABLE

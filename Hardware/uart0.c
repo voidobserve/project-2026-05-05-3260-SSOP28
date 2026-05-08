@@ -16,10 +16,10 @@ char putchar(char c)
 
 void uart0_debug_init(void)
 {
-    // 测试时，使用开发板上面的P25来打印输出
-    P2_MD1 &= ~(GPIO_P25_MODE_SEL(0x03)); // 清空寄存器配置
-    P2_MD1 |= GPIO_P25_MODE_SEL(0x01);    // 输出模式
-    FOUT_S25 |= GPIO_FOUT_UART0_TX;       // 配置为UART0_TX
+    // 测试时，使用开发板上面的P22来打印输出
+    P2_MD0 &= ~(GPIO_P22_MODE_SEL(0x03)); // 清空寄存器配置
+    P2_MD0 |= GPIO_P22_MODE_SEL(0x01);    // 输出模式
+    FOUT_S22 |= GPIO_FOUT_UART0_TX;       // 配置为UART0_TX
 
     UART0_BAUD1 = (USER_UART0_BAUD >> 8) & 0xFF; // 配置波特率高八位
     UART0_BAUD0 = USER_UART0_BAUD & 0xFF;        // 配置波特率低八位
