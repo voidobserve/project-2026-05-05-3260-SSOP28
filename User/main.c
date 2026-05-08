@@ -81,8 +81,10 @@ void main(void)
 
     // USER_TO_DO 上电之后，需要先跑一遍开机动画，再继续主循环
 
-    //     memset(aip3368h_display_buff, 0xFF, sizeof(aip3368h_display_buff));
-    aip3368h_display_buff[0] = 0x01;
+    // memset(aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
+    //     aip3368h_display_buff[0] = 0x01;
+    // aip3368h_display_engine_speed_back_light();
+    // aip3368h_display_engine_speed_scale_bar(12);
 
     /* 系统主循环 */
     while (1)
@@ -129,16 +131,13 @@ void main(void)
 
 #endif //
 
+        aip3368h_display_err_icon(1);
+        delay_ms(500);
         aip3368h_module_display();
-        // DCK = 1;
-        // delay_ms(1);
-        // DCK = 0;
-        // delay_ms(1);
+        aip3368h_display_err_icon(0);
+        delay_ms(500);
 
-        // LAT = 1;
-        // delay_ms(10);
-        // LAT = 0;
-        // delay_ms(10);
+        aip3368h_module_display(); 
     }
 }
 

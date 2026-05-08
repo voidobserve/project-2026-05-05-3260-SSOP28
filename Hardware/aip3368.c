@@ -68,13 +68,14 @@ static void aip3368h_module_send_data_to_all_dev(u16 *buff, u8 len)
 }
 
 #define AIP3368H_FLASH_TEST_ENABLE 0
+// 根据显存中的数据，更新显示
 void aip3368h_module_display(void)
 {
     // if (!systimer_flag_is_valid(SYSTIME_FLAG_50MS))
     //     return;
 
     // 刷新间隔 单位：ms
-    if (aip3368h_refresh_cnt < 500)
+    if (aip3368h_refresh_cnt < 50)
     {
         return;
     }
@@ -104,6 +105,7 @@ void aip3368h_module_clear(void)
 void aip3368h_module_init(void)
 {
     // memset(aip3368h_display_buff, 0xF0, sizeof(aip3368h_display_buff));
+    // 显示驱动芯片有记忆功能（数据锁存），每次上电应该清空显存
     memset(aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
 
     // DCK
