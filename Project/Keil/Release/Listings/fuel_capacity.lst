@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   FUEL_CAPACITY                                                     05/08/2026 18:48:33 PAGE 1   
+C51 COMPILER V9.60.7.0   FUEL_CAPACITY                                                     05/11/2026 14:20:51 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE FUEL_CAPACITY
@@ -62,7 +62,7 @@ line level    source
   50   1          // if (fuel_adc_val >= (4095 - 500) ||
   51   1          //     fuel_adc_val <= (0 + 500))
   52   1          // {
-C51 COMPILER V9.60.7.0   FUEL_CAPACITY                                                     05/08/2026 18:48:33 PAGE 2   
+C51 COMPILER V9.60.7.0   FUEL_CAPACITY                                                     05/11/2026 14:20:51 PAGE 2   
 
   53   1          //     ret = 0xFF; // 根据串口收发协议，0xFF对应没有接油量检测
   54   1          // }
@@ -126,7 +126,7 @@ line level    source
              -L_4_ADC_VAL);
  102   3                  ret = 68 - ret;
  103   3                  if (ret < 51)
-C51 COMPILER V9.60.7.0   FUEL_CAPACITY                                                     05/08/2026 18:48:33 PAGE 3   
+C51 COMPILER V9.60.7.0   FUEL_CAPACITY                                                     05/11/2026 14:20:51 PAGE 3   
 
  104   3                  {
  105   4                      ret = 51;
@@ -190,7 +190,7 @@ line level    source
  159   1      
  160   1          /*
  161   1              刚上电直接获取一次，作为油量的状态
-C51 COMPILER V9.60.7.0   FUEL_CAPACITY                                                     05/08/2026 18:48:33 PAGE 4   
+C51 COMPILER V9.60.7.0   FUEL_CAPACITY                                                     05/11/2026 14:20:51 PAGE 4   
 
  162   1          */
  163   1          {

@@ -85,6 +85,7 @@ void main(void)
     //     aip3368h_display_buff[0] = 0x01;
     // aip3368h_display_engine_speed_back_light();
     // aip3368h_display_engine_speed_scale_bar(12);
+    aip3368h_display_mileage(1, 1);
 
     /* 系统主循环 */
     while (1)
@@ -131,10 +132,10 @@ void main(void)
 
 #endif //
 
-        aip3368h_display_err_icon(1);
+        aip3368h_display_mileage(1, 1); 
         delay_ms(500);
         aip3368h_module_display();
-        aip3368h_display_err_icon(0);
+        aip3368h_display_mileage(1, 1); 
         delay_ms(500);
 
         aip3368h_module_display(); 

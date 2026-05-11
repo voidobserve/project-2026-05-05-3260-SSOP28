@@ -106,7 +106,8 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
 
         // USER_TO_DO 只在测试时只用：
         // aip3368h_display_test_engine_speed_scale_bar_1ms_isr();
- 
+        // aip3368h_display_test_fuel_level_1ms_isr();
+        // aip3368h_display_test_mileage_1ms_isr();
     }
 
     // P20 = 0;// 测试中断持续时间
