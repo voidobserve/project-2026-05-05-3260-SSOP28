@@ -23,9 +23,9 @@
 #if USER_DEBUG_ENABLE
 void debug_pin_init(void)
 {
-    P2_MD0 &= ~GPIO_P23_MODE_SEL(0x03);
-    P2_MD0 |= GPIO_P23_MODE_SEL(0x01); // 输出模式
-    FOUT_S23 = GPIO_FOUT_AF_FUNC;
+    P2_MD0 &= ~GPIO_P21_MODE_SEL(0x03);
+    P2_MD0 |= GPIO_P21_MODE_SEL(0x01); // 输出模式
+    FOUT_S21 = GPIO_FOUT_AF_FUNC;
     DEBUG_PIN = 0;
 }
 #endif
@@ -85,7 +85,9 @@ void main(void)
     //     aip3368h_display_buff[0] = 0x01;
     // aip3368h_display_engine_speed_back_light();
     // aip3368h_display_engine_speed_scale_bar(12);
-    aip3368h_display_mileage(1, 1);
+    // aip3368h_display_speed(19);
+    // aip3368h_display_speed_scale_bar(15);
+    aip3368h_display_obj.is_in_boot_animiation = 1;
 
     /* 系统主循环 */
     while (1)
@@ -132,13 +134,13 @@ void main(void)
 
 #endif //
 
-        aip3368h_display_mileage(1, 1); 
-        delay_ms(500);
-        aip3368h_module_display();
-        aip3368h_display_mileage(1, 1); 
-        delay_ms(500);
+        // aip3368h_display_speed(199);
+        // delay_ms(500);
+        // aip3368h_module_display();
+        // aip3368h_display_speed(0);
+        // delay_ms(500);
 
-        aip3368h_module_display(); 
+        aip3368h_module_display();
     }
 }
 
