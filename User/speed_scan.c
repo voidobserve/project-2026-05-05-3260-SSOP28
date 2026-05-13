@@ -2,25 +2,26 @@
 
 #if SPEED_SCAN_ENABLE
 
+static volatile bit flag_is_speed_scan_over_time = 0; // 速度检测是否一直没有脉冲到来，导致超时
+
+static volatile u32 speed_pulse_cnt = 0;    // 记录脉冲个数，在定时器中断累加
+static volatile u32 speed_scan_time_ms = 0; // 记录扫描时间，在定时器中断累加
+
+static volatile u32 cur_speed_scan_time = 0;  // 当前检测时速所用时间
+static volatile u32 cur_speed_scan_pulse = 0; // 当前检测时速所用时间内检测到的脉冲个数
+
+// 计数器，计数满一段时间后，更新显示
+static volatile u8 aip3368h_display_speed_refresh_time_cnt = 0;
+
 // 时速扫描的配置
 void speed_scan_config(void)
 {
-#if 1 // 使用定时器扫描IO电平变化来计算脉冲
-
+    // 使用定时器扫描IO电平变化来计算脉冲
     P1_MD1 &= ~GPIO_P15_MODE_SEL(0x3); // 输入模式
     P1_PU |= GPIO_P15_PULL_UP(0x1);    // 配置为上拉
-
-#endif // 使用定时器扫描IO电平变化来计算脉冲
 }
- 
 
-volatile bit flag_is_speed_scan_over_time = 0; // 速度检测是否一直没有脉冲到来，导致超时
-volatile u32 speed_pulse_cnt = 0;              // 记录脉冲个数，在定时器中断累加
-volatile u32 speed_scan_time_ms = 0;           // 记录扫描时间
-static volatile u32 cur_speed_scan_time = 0;
-static volatile u32 cur_speed_scan_pulse = 0;
-
-void update_speed_scan_data(void) // 更新检测时速的数据
+void speed_scan_update_data(void) // 更新检测时速的数据
 {
     cur_speed_scan_time += speed_scan_time_ms;
     speed_scan_time_ms = 0;
@@ -28,10 +29,45 @@ void update_speed_scan_data(void) // 更新检测时速的数据
     speed_pulse_cnt = 0;
 }
 
+void speed_scan_timer_50us_isr(void)
+{
+    static volatile bit last_speed_scan_level = 0; // 记录上一次检测到的引脚电平（时速检测脚）
+    static u16 cnt = 0;                            // 记录时速扫描的时间
+    cnt++;
+    if (cnt >= 20) // 每1ms进入一次
+    {
+        cnt = 0;
+        speed_scan_time_ms++; // 更新扫描时间
+
+        if (speed_scan_time_ms >= SPEED_SCAN_OVER_TIME &&
+            flag_is_speed_scan_over_time == 0)
+        {
+            speed_scan_time_ms = 0;
+            flag_is_speed_scan_over_time = 1; // 说明超时，脉冲计数一直没有加一
+        }
+    }
+
+    if (SPEED_SCAN_PIN) // 检测时速的引脚
+    {
+        if (0 == last_speed_scan_level)
+        {
+            speed_pulse_cnt++;
+            speed_scan_update_data();
+        }
+
+        last_speed_scan_level = 1;
+    }
+    else
+    {
+        // 如果现在检测到低电平
+        last_speed_scan_level = 0;
+    }
+}
+
 void speed_scan(void)
 {
     volatile u32 cur_speed = 0;
-    u32 tmp = 0;
+    volatile u32 tmp = 0;
 
     if (cur_speed_scan_time >= SPEED_SCAN_UPDATE_TIME || flag_is_speed_scan_over_time)
     {
@@ -45,7 +81,15 @@ void speed_scan(void)
 
         if (flag_is_speed_scan_over_time) // 超时，采集到的脉冲个数对应一直是0km/h，认为时速是0
         {
-            cur_speed = 0;
+            if (cur_speed_scan_pulse != 0)
+            {
+                // 如果采集的脉冲个数不为0
+                cur_speed = 1;
+            }
+            else
+            {
+                cur_speed = 0;
+            }
         }
         else // 未超时，计算采集到的脉冲个数对应走过的距离，再转换成以km/h的单位
         {
@@ -76,15 +120,57 @@ void speed_scan(void)
         cur_speed_scan_time = 0;
         flag_is_speed_scan_over_time = 0;
 
-        instrument.speed = cur_speed;
         // 限制要发送的时速:
-        // if (instrument.speed > 999)
-        // {
-        //     instrument.speed = 999;
-        // }
+        if (cur_speed > 199)
+        {
+            cur_speed = 199;
+        }
+        instrument.speed = cur_speed;
+    }
+}
 
-        // flag_get_speed = 1; // 表示速度有数据更新
-    } // if (cur_speed_scan_time >= 500 || flag_is_speed_scan_over_time)
+
+ 
+
+void aip3368h_display_speed_refresh_time_add(void)
+{
+    if (aip3368h_display_speed_refresh_time_cnt < ((u8)-1)) // 防止计数溢出
+    {
+        aip3368h_display_speed_refresh_time_cnt++;
+    }
+}
+
+void aip3368h_display_speed_handle(void)
+{
+    static u8 is_initiated = 0; // 是否初始化
+    static u8 speed_of_lag = 0; // 延迟显示的时速
+
+    if (0 == is_initiated)
+    {
+        is_initiated = 1;
+
+        speed_of_lag = instrument.speed; // 初始化，直接获取当前最新的速度值
+        aip3368h_display_speed(speed_of_lag);
+    }
+
+    if (aip3368h_display_speed_refresh_time_cnt >= AIP3368H_DISPLAY_SPEED_REFRESH_TIME)
+    {
+        aip3368h_display_speed_refresh_time_cnt = 0;
+
+        if (speed_of_lag > instrument.speed)
+        {
+            if (speed_of_lag > 0)
+            {
+                speed_of_lag--;
+            }
+        }
+        else if (speed_of_lag < instrument.speed)
+        {
+            speed_of_lag++;
+        }
+
+        aip3368h_display_speed(speed_of_lag);
+    }
 }
 
 #endif

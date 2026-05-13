@@ -52,28 +52,6 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
     {
         TMR1_CONH |= TMR_PRD_PND(0x1); // 清除pending
 
-#if AD_KEY_ENABLE
-        // 在定时器注册按键扫描：
-        // if (ad_key_para.cur_scan_times < 255)
-        {
-            ad_key_para.cur_scan_times++;
-        }
-#endif // AD_KEY_ENABLE
-
-#if TOUCH_KEY_ENABLE
-        // if (touch_key_para.cur_scan_times < 255)
-        {
-            touch_key_para.cur_scan_times++;
-        }
-#endif // TOUCH_KEY_ENABLE
-
-#if PIN_LEVEL_SCAN_ENABLE
-        // if (pin_level_scan_time_cnt < 65535) // 防止计数溢出
-        {
-            pin_level_scan_time_cnt++;
-        }
-#endif
-
         // if (mileage_save_time_cnt < 4294967295 - diff_ms_cnt) // 防止计数溢出
         if (mileage_save_time_cnt < 65535)
         {
@@ -102,7 +80,8 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
 #endif // BATTERY_SCAN_ENABLE
 
         aip3368h_refresh_time_add();
-
+        aip3368h_display_speed_refresh_time_add();
+        aip3368h_display_engine_speed_refresh_time_add();
 
         // USER_TO_DO 只在测试时只用：
         // aip3368h_display_test_engine_speed_scale_bar_1ms_isr();
@@ -110,6 +89,8 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
         // aip3368h_display_test_mileage_1ms_isr();
         // aip3368h_display_test_speed_1ms_isr();
         // aip3368h_display_test_speed_scale_bar_1ms_isr();
+
+        // USER_TO_DO 应该把修改显存的操作放到主循环，这里仅用作计时
         aip3368h_display_boot_animation_1ms_isr();
     }
 

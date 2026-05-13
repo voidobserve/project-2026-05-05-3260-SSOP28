@@ -14,20 +14,10 @@ void adc_config(void)
     P0_MD1 |= GPIO_P04_MODE_SEL(0x3); // 模拟模式
 #endif
 
-#if AD_KEY_ENABLE
-    // P05-- ad按键检测
-    P0_MD1 |= GPIO_P05_MODE_SEL(0x3); // 模拟模式
-#endif
-
 #if FUEL_CAPACITY_SCAN_ENABLE
     // 检测油量的引脚：
     P0_MD0 |= GPIO_P01_MODE_SEL(0x3); // 模拟模式
-#endif
-
-#if TEMP_OF_WATER_SCAN_ENABLE
-// 检测水温的引脚:
-// P0_MD0 |= GPIO_P00_MODE_SEL(0x3); // 模拟模式
-#endif // TEMP_OF_WATER_SCAN_ENABLE
+#endif 
 
     ADC_CFG1 |= (0x0F << 3) | // ADC时钟分频为16分频，为系统时钟/16
                 (0x01 << 0);  // adc0中断使能
@@ -184,4 +174,4 @@ void ADC_IRQHandler(void) interrupt ADC_IRQn
     __IRQnIPnPop(ADC_IRQn);
 }
 
-#endif // #if (BATTERY_SCAN_ENABLE || AD_KEY_ENABLE || FUEL_CAPACITY_SCAN_ENABLE || TEMP_OF_WATER_SCAN_ENABLE)
+#endif 

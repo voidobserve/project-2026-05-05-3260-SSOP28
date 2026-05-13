@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   ADC                                                               05/12/2026 18:04:05 PAGE 1   
+C51 COMPILER V9.60.7.0   ADC                                                               05/13/2026 17:31:30 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE ADC
@@ -62,7 +62,7 @@ line level    source
   51   1                        (0x01 << 2) |
   52   1                        (0x01 << 1) |
   53   1                        (0x01 << 0)); // 清空选择的adc0通路
-C51 COMPILER V9.60.7.0   ADC                                                               05/12/2026 18:04:05 PAGE 2   
+C51 COMPILER V9.60.7.0   ADC                                                               05/13/2026 17:31:30 PAGE 2   
 
   54   1      
   55   1          switch (adc_channel)
@@ -126,7 +126,7 @@ line level    source
  109   1      
  110   1          for (i = 0; i < 20; i++)
  111   1          {
-C51 COMPILER V9.60.7.0   ADC                                                               05/12/2026 18:04:05 PAGE 3   
+C51 COMPILER V9.60.7.0   ADC                                                               05/13/2026 17:31:30 PAGE 3   
 
  112   2              adc_val_tmp = adc_single_convert(); // 获取一次ad值
  113   2              if (i < 2)
@@ -190,7 +190,7 @@ line level    source
  171   2              switch (adc_channel_status)
  172   2              {
  173   3              case ADC_CHANNEL_STATUS_SEL_BATTERY_END:
-C51 COMPILER V9.60.7.0   ADC                                                               05/12/2026 18:04:05 PAGE 4   
+C51 COMPILER V9.60.7.0   ADC                                                               05/13/2026 17:31:30 PAGE 4   
 
  174   3                  adc_update_battery_val(adc_val);
  175   3                  break;

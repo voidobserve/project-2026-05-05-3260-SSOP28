@@ -13,7 +13,6 @@ void mileage_scan(void)
     // 下面这组变量用来控制每走过一段距离时，发送里程数据
     static u32 old_total_mileage;    // 用来记录旧的大计里程的变量
     static u32 old_subtotal_mileage; // 用来记录旧的小计里程的变量
-    // static u32 old_subtotal_mileage_2; // 用来记录旧的小计里程2的变量
 
     /*
         是否有里程数据需要保存的标志变量，0--没有里程变化，不需要保存，1--有里程变化，需要保存

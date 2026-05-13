@@ -38,6 +38,10 @@ void user_init(void)
     printf("sys reset\n");
 #endif
 
+#if PIN_LEVEL_SCAN_ENABLE
+    pin_level_scan_config();
+#endif
+
 #if SPEED_SCAN_ENABLE
     speed_scan_config(); // 时速扫描的配置
 #endif
@@ -58,7 +62,7 @@ void user_init(void)
     aip3368h_module_init();
 
     tmr1_config(); //
-                   //     tmr2_config(); // 扫描脉冲(电平变化)的定时器
+    tmr2_config(); // 扫描脉冲(电平变化)的定时器
 
     delay_ms(1); // 等待系统稳定
                  // delay_ms(2000); // 等待系统稳定
@@ -80,14 +84,8 @@ void main(void)
     user_init();
 
     // USER_TO_DO 上电之后，需要先跑一遍开机动画，再继续主循环
-
-    // memset(aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
-    //     aip3368h_display_buff[0] = 0x01;
-    // aip3368h_display_engine_speed_back_light();
+    // aip3368h_display_obj.is_in_boot_animiation = 1;
     // aip3368h_display_engine_speed_scale_bar(12);
-    // aip3368h_display_speed(19);
-    // aip3368h_display_speed_scale_bar(15);
-    aip3368h_display_obj.is_in_boot_animiation = 1;
 
     /* 系统主循环 */
     while (1)
@@ -98,30 +96,25 @@ void main(void)
 #if 1
         WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗并清除 wdt_pending
 
-#if TOUCH_KEY_ENABLE
-        /* 按键扫描函数 */
-        __tk_scan();                 // 使用了库里面的接口（闭源库）
-        WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗并清除 wdt_pending
+#if PIN_LEVEL_SCAN_ENABLE
+        pin_level_scan();
 #endif
 
 #if AD_KEY_ENABLE
         key_driver_scan(&ad_key_para);
         ad_key_handle(); // ad按键处理函数
-#endif                   //  #if AD_KEY_ENABLE
-
-#if TOUCH_KEY_ENABLE
-        key_driver_scan(&touch_key_para);
-        touch_key_handle(); // 触摸按键处理函数
 #endif
 
 #if SPEED_SCAN_ENABLE
         // speed_scan(); // 检测时速
+        // aip3368h_display_speed_handle();
 #endif
 
         // mileage_scan(); // 检测大计里程和小计里程
 
 #if ENGINE_SPEED_SCAN_ENABLE
-        // engine_speed_scan(); // 检测发动机转速
+        engine_speed_scan(); // 检测发动机转速
+        aip3368h_display_engine_speed_handle();
 #endif
 
 #if FUEL_CAPACITY_SCAN_ENABLE

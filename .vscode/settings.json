@@ -29,4 +29,5 @@
         "flash.h": "c",
         "tx8t326x_flash.h": "c"
     },
+    "workbench.tree.indent": 4,
 }

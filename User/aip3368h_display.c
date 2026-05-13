@@ -326,9 +326,10 @@ void aip3368h_display_mileage_km_icon(u8 is_enable)
  * @param bit_x 0 ~ 5 (0=个位, 5=十万位)
  * @param number 0 ~ 9
  */
-static void __aip3368h_display_mileage_bit_x__(u8 bit_x, u8 number)
+void __aip3368h_display_mileage_bit_x__(u8 bit_x, u8 number)
 {
-    u8 seg;
+    u8 i;
+    // u8 j; // 循环计数值
     // 参数有效性检查（为了节省程序空间，这里可以省略）
     // if (bit_x > 5 || number > 9)
     // {
@@ -338,15 +339,18 @@ static void __aip3368h_display_mileage_bit_x__(u8 bit_x, u8 number)
     // 获取该数字对应的7段码 (要显示的数字 --> 七段码)
     u8 segment_code = digit_segment_code[number];
 
-    // 根据段码设置对应的buff位
-    for (seg = 0; seg < 7; seg++)
+    // 清除 bit_x 对应数码管 a ~ g 段的显示
+    for (i = 0; i < 7; i++) //
     {
+        aip3368h_display_buff[mileage_segment_map[bit_x][i].buff_index] &=
+            ~(0x01 << mileage_segment_map[bit_x][i].bit_offset);
+
         // 检查该段是否需要点亮 (segment_code的对应bit是否为1)
-        if (segment_code & (1 << seg))
+        if (segment_code & (1 << i))
         {
             // 点亮该段
-            aip3368h_display_buff[mileage_segment_map[bit_x][seg].buff_index] |=
-                (0x01 << mileage_segment_map[bit_x][seg].bit_offset);
+            aip3368h_display_buff[mileage_segment_map[bit_x][i].buff_index] |=
+                (0x01 << mileage_segment_map[bit_x][i].bit_offset);
         }
     }
 }
@@ -359,16 +363,6 @@ static void __aip3368h_display_mileage_bit_x__(u8 bit_x, u8 number)
 void __aip3368h_display_mileage__(u32 mileage)
 {
     u8 i; // 循环计数值
-    u8 j; // 循环计数值
-    // 清除第 0 ~ 5 位数码管的显示
-    for (i = 0; i < 6; i++)
-    {
-        for (j = 0; j < 7; j++) // 第 i 位数码管的 a ~ g 段
-        {
-            aip3368h_display_buff[mileage_segment_map[i][j].buff_index] &=
-                ~(0x01 << mileage_segment_map[i][j].bit_offset);
-        }
-    }
 
     // 显示里程的数值，不包括单位、小数点：
     for (i = 0; i < 6; i++)
@@ -389,9 +383,6 @@ void __aip3368h_display_mileage__(u32 mileage)
  */
 void aip3368h_display_mileage(u32 mileage, u8 is_displaying_total_mileage)
 {
-    u8 i; // 循环计数值
-    u8 j; // 循环计数值
-
     // 默认先清空有关里程的显示
     aip3368h_display_buff[3] &= ~(0x01 << 15); // 大计里程 ODO 指示灯，第 0 格
     aip3368h_display_buff[3] &= ~(0x01 << 14); // 大计里程 ODO 指示灯，第 1 格
@@ -438,6 +429,41 @@ void aip3368h_display_speed_km_icon(u8 is_enable)
 }
 
 /**
+ * @brief 控制数码管 第 x 位 显示的数字
+ *
+ * @attention
+ *
+ * @param bit_x 0 ~ 1，对应第 1 ~ 2 位数码管
+ * @param number 0 ~ 9，需要显示的数字
+ */
+void __aip3368h_display_speed_bit_x__(u8 bit_x, u8 number)
+{
+    u8 i;
+    // u8 seg;
+    // 获取该数字对应的7段码 (要显示的数字 --> 七段码)
+    u8 segment_code = digit_segment_code[number];
+
+    // 清除第 x 位数码管显示
+    for (i = 0; i < 7; i++)
+    {
+        aip3368h_display_buff[speed_segment_map[bit_x][i].buff_index] &=
+            ~(0x01 << speed_segment_map[bit_x][i].bit_offset);
+    }
+
+    // 根据段码设置对应的buff位
+    for (i = 0; i < 7; i++)
+    {
+        // 检查该段是否需要点亮 (segment_code的对应bit是否为1)
+        if (segment_code & (1 << i))
+        {
+            // 点亮该段
+            aip3368h_display_buff[speed_segment_map[bit_x][i].buff_index] |=
+                (0x01 << speed_segment_map[bit_x][i].bit_offset);
+        }
+    }
+}
+
+/**
  * @brief 显示时速
  *
  * @param speed 0 ~ 199
@@ -449,7 +475,7 @@ void aip3368h_display_speed(u8 speed)
 {
     u8 i;
     u8 j;
-    u8 segment_code;
+    // u8 segment_code;
     // 传参的有效数据位：
     u8 valid_bits = 0;
     u8 tmp = 0;
@@ -502,17 +528,20 @@ void aip3368h_display_speed(u8 speed)
             continue;
         }
 
-        segment_code = digit_segment_code[speed % 10];
+        __aip3368h_display_speed_bit_x__(1 - i, speed % 10);
         speed /= 10;
 
-        for (j = 0; j < 7; j++) // 遍历 a ~ g 段
-        {
-            if (segment_code & (1 << j))
-            {
-                aip3368h_display_buff[speed_segment_map[1 - i][j].buff_index] |=
-                    (0x01 << speed_segment_map[1 - i][j].bit_offset);
-            }
-        }
+        // segment_code = digit_segment_code[speed % 10];
+        // speed /= 10;
+
+        // for (j = 0; j < 7; j++) // 遍历 a ~ g 段
+        // {
+        //     if (segment_code & (1 << j))
+        //     {
+        //         aip3368h_display_buff[speed_segment_map[1 - i][j].buff_index] |=
+        //             (0x01 << speed_segment_map[1 - i][j].bit_offset);
+        //     }
+        // }
     }
 }
 
@@ -544,23 +573,14 @@ void aip3368h_display_speed_scale_bar(u8 level)
 }
 
 /**
- * @brief 发送机转速面板上的开机动画
+ * @brief 发送机转速滑动条的开机动画
  *
  */
-void __aip3368h_display_boot_animaiton_in_engine_speed_panel__(void)
+void __aip3368h_display_boot_animation_in_engine_speed_scale_bar__(void)
 {
     static u16 animation_engine_speed_scale_bar_step = 0;
     static u8 animation_engine_speed_scale_bar_phase = 0; // 0:渐渐递增，1:保持最高，2:渐渐递减
     static u8 animation_engine_speed_scale_bar_level = 0;
-    static u8 animation_engine_speed_panel_initiated = 0;
-
-    if (0 == animation_engine_speed_panel_initiated)
-    {
-        aip3368h_display_engine_speed_back_light(); // 点亮背光
-        aip3368h_display_exclamation_point(1);      // 点亮感叹号
-
-        animation_engine_speed_panel_initiated = 1;
-    }
 
     // 动画分为三个阶段：
     // 阶段1 : 从低到高递增
@@ -590,13 +610,13 @@ void __aip3368h_display_boot_animaiton_in_engine_speed_panel__(void)
     {
         // 阶段2: 保持最高阶段
         // 假设保持时间为 xx ms (可根据需要调整)
-        if (animation_engine_speed_scale_bar_step >= 150)
+        if (animation_engine_speed_scale_bar_step >= 200)
         {
             animation_engine_speed_scale_bar_step = 0;
             animation_engine_speed_scale_bar_phase = 2; // 进入递减阶段
         }
         // 保持显示最高级别
-        aip3368h_display_engine_speed_scale_bar(12);
+        // aip3368h_display_engine_speed_scale_bar(12);
     }
     else if (animation_engine_speed_scale_bar_phase == 2)
     {
@@ -615,15 +635,176 @@ void __aip3368h_display_boot_animaiton_in_engine_speed_panel__(void)
     }
 }
 
-void __aip3368h_display_boot_animaiton_in_mileage_panel__(void)
+void __aip3368h_display_boot_animation_in_speed_scale_bar__(void)
 {
     static u16 animation_speed_scale_bar_step = 0; // 控制时速刻度条的步长
-    static u8 animation_phase = 0; // 0:渐渐递增，1:保持最高，2:渐渐递减
+    static u8 animation_phase = 0;                 // 0:渐渐递增，1:保持最高，2:渐渐递减
     static u8 animation_speed_scale_bar_level = 0;
-    static u8 animation_panel_initiated = 0;
 
-    if (0 == animation_panel_initiated)
+    animation_speed_scale_bar_step++;
+    if (0 == animation_phase)
     {
+        if (animation_speed_scale_bar_step >= 100)
+        {
+            animation_speed_scale_bar_step = 0;
+            animation_speed_scale_bar_level++;
+
+            if (animation_speed_scale_bar_level >= 16)
+            {
+                // animation_speed_scale_bar_level = 12;
+                animation_phase = 1; // 进入保持阶段
+            }
+
+            aip3368h_display_speed_scale_bar(animation_speed_scale_bar_level);
+        }
+    }
+    else if (1 == animation_phase)
+    {
+        if (animation_speed_scale_bar_step >= 400)
+        {
+            animation_speed_scale_bar_step = 0;
+            animation_phase = 2; // 进入递减阶段
+        }
+    }
+    else if (2 == animation_phase)
+    {
+        if (animation_speed_scale_bar_step >= 100)
+        {
+            animation_speed_scale_bar_step = 0;
+
+            if (animation_speed_scale_bar_level > 0)
+            {
+                animation_speed_scale_bar_level--;
+            }
+
+            aip3368h_display_speed_scale_bar(animation_speed_scale_bar_level);
+        }
+    }
+}
+
+// 时速和里程的开机动画显示
+void __aip3368h_display_boot_animation_in_speed_and_mileage__(void)
+{
+    static u16 animation_step = 0; // 控制动画的步长
+    static u8 animation_phase = 0; // 0:渐渐递增，1:保持最高，2:渐渐递减
+    static u8 animation_val = 0;
+    volatile u8 i;
+
+    animation_step++;
+    if (0 == animation_phase)
+    {
+        if (animation_step >= 200)
+        {
+            animation_step = 0;
+            __aip3368h_display_speed_bit_x__(0, animation_val);
+            __aip3368h_display_speed_bit_x__(1, animation_val);
+
+            for (i = 0; i < 6; i++)
+            {
+                __aip3368h_display_mileage_bit_x__(i, animation_val);
+            }
+
+            animation_val++;
+
+            if (animation_val >= 10)
+            {
+                animation_val = 9;
+                animation_phase = 1;
+            }
+        }
+    }
+    else if (1 == animation_phase)
+    {
+        // if (animation_step >= 100)
+        // {
+        //     animation_step = 0;
+        //     animation_phase = 2; // 进入递减阶段
+        // }
+
+        if (animation_step >= 200)
+        {
+            animation_step = 0;
+
+            if (animation_val > 0)
+            {
+                animation_val--;
+            }
+
+            __aip3368h_display_speed_bit_x__(0, animation_val);
+            __aip3368h_display_speed_bit_x__(1, animation_val);
+            for (i = 0; i < 6; i++)
+            {
+                __aip3368h_display_mileage_bit_x__(i, animation_val);
+            }
+        }
+    }
+}
+
+void __aip3368h_display_boot_animation_in_fuel_level__(void)
+{
+    static u16 animation_step = 0; // 控制动画的步长
+    static u8 animation_phase = 0; // 0:渐渐递增，1:保持最高，2:渐渐递减
+    static u8 level = 0;
+
+    animation_step++;
+    if (0 == animation_phase)
+    {
+        if (animation_step >= 300)
+        {
+            animation_step = 0;
+
+            if (level < AIP3368H_DISPLAY_FUEL_LEVEL_4)
+            {
+                level++;
+            }
+            else
+            {
+                animation_phase = 1;
+            }
+
+            aip3368h_display_fuel_level(level);
+        }
+    }
+    else if (1 == animation_phase)
+    {
+        if (animation_step >= 400)
+        {
+            animation_step = 0;
+            animation_phase = 2;
+        }
+    }
+    else if (2 == animation_phase)
+    {
+        if (animation_step >= 300)
+        {
+            animation_step = 0;
+
+            if (level > 0)
+            {
+                level--;
+            }
+
+            aip3368h_display_fuel_level(level);
+        }
+    }
+}
+
+void aip3368h_display_boot_animation_1ms_isr(void)
+{
+    // static u8 level = 0; // Unused variable removed
+    static u16 animation_time_cnt = 0;
+    static u8 animation_initiated = 0;
+
+    if (aip3368h_display_obj.is_in_boot_animiation == 0)
+    {
+        return;
+    }
+
+    if (0 == animation_initiated)
+    {
+        aip3368h_display_engine_speed_back_light(); // 点亮背光
+        aip3368h_display_exclamation_point(1);      // 点亮感叹号
+
         aip3368h_display_mileage_km_icon(1); // 点亮公里的km字样图标
         aip3368h_display_speed_km_icon(1);   // 点亮速度的km字样图标
         // 点亮 ODO 、 TRIP 字样的图标
@@ -636,30 +817,19 @@ void __aip3368h_display_boot_animaiton_in_mileage_panel__(void)
         aip3368h_display_bat_err_icon(1);
         aip3368h_display_err_icon(1);
 
-        animation_panel_initiated = 1;
-    }
+        // 显示时速第 0 位的 1：
+        aip3368h_display_buff[2] |= (0x01 << 8);
+        aip3368h_display_buff[7] |= (0x01 << 3);
 
-    if (0 == animation_phase)
-    {
-
-    }
-}
-
-void aip3368h_display_boot_animation_1ms_isr(void)
-{
-    // static u8 level = 0; // Unused variable removed
-    static u16 animation_time_cnt = 0;
-
-    if (aip3368h_display_obj.is_in_boot_animiation == 0)
-    {
-        return;
+        animation_initiated = 1;
     }
 
     animation_time_cnt++;
 
-    // 发送机转速圆盘上的动画：
-    // __aip3368h_display_boot_animaiton_in_engine_speed_panel__();
-    __aip3368h_display_boot_animaiton_in_mileage_panel__();
+    __aip3368h_display_boot_animation_in_engine_speed_scale_bar__();
+    __aip3368h_display_boot_animation_in_speed_scale_bar__();
+    __aip3368h_display_boot_animation_in_speed_and_mileage__();
+    __aip3368h_display_boot_animation_in_fuel_level__();
 
     // 4s的开机动画结束
     if (animation_time_cnt >= 4000)
@@ -668,8 +838,14 @@ void aip3368h_display_boot_animation_1ms_isr(void)
         // 动画结束后清空显示
 
         // 后面添加了相关的检测和更新函数之后，下面的操作可以省略
-        aip3368h_display_engine_speed_scale_bar(0);
-        aip3368h_display_exclamation_point(0); // 不显示感叹号
+        aip3368h_display_engine_speed_scale_bar(0); // 不显示发动机转速刻度条
+        aip3368h_display_exclamation_point(0);      // 不显示感叹号
+        
+
+        aip3368h_display_bat_err_icon(0);
+        aip3368h_display_err_icon(0);
+        aip3368h_display_speed_scale_bar(16); 
+        // USER_TO_DO 需要根据记忆的 ODO、TRIP ，显示对应的图标
     }
 }
 

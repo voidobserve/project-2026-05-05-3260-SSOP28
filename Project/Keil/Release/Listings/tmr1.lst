@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   TMR1                                                              05/12/2026 18:04:05 PAGE 1   
+C51 COMPILER V9.60.7.0   TMR1                                                              05/13/2026 17:32:47 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE TMR1
@@ -62,77 +62,56 @@ line level    source
   50   1          // 周期中断
   51   1          if (TMR1_CONH & TMR_PRD_PND(0x1))
   52   1          {
-C51 COMPILER V9.60.7.0   TMR1                                                              05/12/2026 18:04:05 PAGE 2   
+C51 COMPILER V9.60.7.0   TMR1                                                              05/13/2026 17:32:47 PAGE 2   
 
   53   2              TMR1_CONH |= TMR_PRD_PND(0x1); // 清除pending
   54   2      
-  55   2      #if AD_KEY_ENABLE
-                      // 在定时器注册按键扫描：
-                      // if (ad_key_para.cur_scan_times < 255)
-                      {
-                          ad_key_para.cur_scan_times++;
-                      }
-              #endif // AD_KEY_ENABLE
-  62   2      
-  63   2      #if TOUCH_KEY_ENABLE
-                      // if (touch_key_para.cur_scan_times < 255)
-                      {
-                          touch_key_para.cur_scan_times++;
-                      }
-              #endif // TOUCH_KEY_ENABLE
+  55   2              // if (mileage_save_time_cnt < 4294967295 - diff_ms_cnt) // 防止计数溢出
+  56   2              if (mileage_save_time_cnt < 65535)
+  57   2              {
+  58   3                  mileage_save_time_cnt++;
+  59   3                  // mileage_save_time_cnt += diff_ms_cnt;
+  60   3              }
+  61   2      
+  62   2      #if FUEL_CAPACITY_SCAN_ENABLE
+  63   2              // if (fuel_capacity_scan_cnt < 4294967295 - diff_ms_cnt) // 防止计数溢出
+  64   2              {
+  65   3                  fuel_capacity_scan_cnt++;
+  66   3                  // fuel_capacity_scan_cnt += diff_ms_cnt;
+  67   3              }
+  68   2      #endif
   69   2      
-  70   2      #if PIN_LEVEL_SCAN_ENABLE
-  71   2              // if (pin_level_scan_time_cnt < 65535) // 防止计数溢出
-  72   2              {
-  73   3                  pin_level_scan_time_cnt++;
-  74   3              }
-  75   2      #endif
-  76   2      
-  77   2              // if (mileage_save_time_cnt < 4294967295 - diff_ms_cnt) // 防止计数溢出
-  78   2              if (mileage_save_time_cnt < 65535)
-  79   2              {
-  80   3                  mileage_save_time_cnt++;
-  81   3                  // mileage_save_time_cnt += diff_ms_cnt;
-  82   3              }
-  83   2      
-  84   2      #if FUEL_CAPACITY_SCAN_ENABLE
-  85   2              // if (fuel_capacity_scan_cnt < 4294967295 - diff_ms_cnt) // 防止计数溢出
-  86   2              {
-  87   3                  fuel_capacity_scan_cnt++;
-  88   3                  // fuel_capacity_scan_cnt += diff_ms_cnt;
-  89   3              }
-  90   2      #endif
-  91   2      
-  92   2              // if (mileage_update_time_cnt < 65535)
-  93   2              {
-  94   3                  mileage_update_time_cnt++;
-  95   3              }
-  96   2      
-  97   2      #if BATTERY_SCAN_ENABLE
-  98   2              // if (battery_scan_time_cnt < 4294967295)
-  99   2              {
- 100   3                  battery_scan_time_cnt++;
- 101   3              }
- 102   2      #endif // BATTERY_SCAN_ENABLE
- 103   2      
- 104   2              aip3368h_refresh_time_add();
- 105   2      
- 106   2      
- 107   2              // USER_TO_DO 只在测试时只用：
- 108   2              // aip3368h_display_test_engine_speed_scale_bar_1ms_isr();
- 109   2              // aip3368h_display_test_fuel_level_1ms_isr();
- 110   2              // aip3368h_display_test_mileage_1ms_isr();
- 111   2              // aip3368h_display_test_speed_1ms_isr();
- 112   2              // aip3368h_display_test_speed_scale_bar_1ms_isr();
- 113   2              aip3368h_display_boot_animation_1ms_isr();
- 114   2          }
-C51 COMPILER V9.60.7.0   TMR1                                                              05/12/2026 18:04:05 PAGE 3   
-
- 115   1      
- 116   1          // P20 = 0;// 测试中断持续时间
- 117   1          // 退出中断设置IP，不可删除
- 118   1          __IRQnIPnPop(TMR1_IRQn);
- 119   1      }
+  70   2              // if (mileage_update_time_cnt < 65535)
+  71   2              {
+  72   3                  mileage_update_time_cnt++;
+  73   3              }
+  74   2      
+  75   2      #if BATTERY_SCAN_ENABLE
+  76   2              // if (battery_scan_time_cnt < 4294967295)
+  77   2              {
+  78   3                  battery_scan_time_cnt++;
+  79   3              }
+  80   2      #endif // BATTERY_SCAN_ENABLE
+  81   2      
+  82   2              aip3368h_refresh_time_add();
+  83   2              aip3368h_display_speed_refresh_time_add();
+  84   2              aip3368h_display_engine_speed_refresh_time_add();
+  85   2      
+  86   2              // USER_TO_DO 只在测试时只用：
+  87   2              // aip3368h_display_test_engine_speed_scale_bar_1ms_isr();
+  88   2              // aip3368h_display_test_fuel_level_1ms_isr();
+  89   2              // aip3368h_display_test_mileage_1ms_isr();
+  90   2              // aip3368h_display_test_speed_1ms_isr();
+  91   2              // aip3368h_display_test_speed_scale_bar_1ms_isr();
+  92   2      
+  93   2              // USER_TO_DO 应该把修改显存的操作放到主循环，这里仅用作计时
+  94   2              aip3368h_display_boot_animation_1ms_isr();
+  95   2          }
+  96   1      
+  97   1          // P20 = 0;// 测试中断持续时间
+  98   1          // 退出中断设置IP，不可删除
+  99   1          __IRQnIPnPop(TMR1_IRQn);
+ 100   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE

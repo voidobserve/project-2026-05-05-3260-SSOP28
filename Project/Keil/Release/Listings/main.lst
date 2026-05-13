@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   MAIN                                                              05/12/2026 18:04:06 PAGE 1   
+C51 COMPILER V9.60.7.0   MAIN                                                              05/13/2026 17:48:49 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
@@ -49,126 +49,120 @@ line level    source
   38   1          printf("sys reset\n");
   39   1      #endif
   40   1      
-  41   1      #if SPEED_SCAN_ENABLE
-  42   1          speed_scan_config(); // 时速扫描的配置
-  43   1      #endif
-  44   1      
-  45   1      #if ENGINE_SPEED_SCAN_ENABLE
-  46   1          engine_speed_scan_config(); // 发动机转速扫描的配置
-  47   1      #endif
-  48   1      
-  49   1      #if (BATTERY_SCAN_ENABLE || AD_KEY_ENABLE || FUEL_CAPACITY_SCAN_ENABLE || TEMP_OF_WATER_SCAN_ENABLE)
-  50   1          adc_config();
-  51   1      #endif
-  52   1      
-  53   1      #if TOUCH_KEY_ENABLE
-C51 COMPILER V9.60.7.0   MAIN                                                              05/12/2026 18:04:06 PAGE 2   
+  41   1      #if PIN_LEVEL_SCAN_ENABLE
+  42   1      
+  43   1          pin_level_scan_config();
+  44   1      #endif
+  45   1      
+  46   1      #if SPEED_SCAN_ENABLE
+  47   1          speed_scan_config(); // 时速扫描的配置
+  48   1      #endif
+  49   1      
+  50   1      #if ENGINE_SPEED_SCAN_ENABLE
+  51   1          engine_speed_scan_config(); // 发动机转速扫描的配置
+  52   1      #endif
+  53   1      
+C51 COMPILER V9.60.7.0   MAIN                                                              05/13/2026 17:48:49 PAGE 2   
 
+  54   1      #if (BATTERY_SCAN_ENABLE || AD_KEY_ENABLE || FUEL_CAPACITY_SCAN_ENABLE || TEMP_OF_WATER_SCAN_ENABLE)
+  55   1          adc_config();
+  56   1      #endif
+  57   1      
+  58   1      #if TOUCH_KEY_ENABLE
                   tk_param_init(); // 触摸按键模块初始化
               #endif
-  56   1      
-  57   1          instrument_info_init(); // 初始化仪表信息
-  58   1          aip3368h_module_init();
-  59   1      
-  60   1          tmr1_config(); //
-  61   1                         //     tmr2_config(); // 扫描脉冲(电平变化)的定时器
-  62   1      
-  63   1          delay_ms(1); // 等待系统稳定
-  64   1                       // delay_ms(2000); // 等待系统稳定
-  65   1      }
-  66          
-  67          void main(void)
-  68          {
-  69   1          // 看门狗默认打开, 复位时间2s
-  70   1          system_init();
-  71   1      
-  72   1          // WDT_KEY = WDT_KEY_VAL(0xDD); //  关闭看门狗
-  73   1      
-  74   1          // 关闭HCK和HDA的调试功能
-  75   1          WDT_KEY = 0x55;  // 解除写保护
-  76   1          IO_MAP &= ~0x01; // 清除这个寄存器的值，实现关闭HCK和HDA引脚的调试功能（解除�
-             -��射）
-  77   1          WDT_KEY = 0xBB;
+  61   1      
+  62   1          instrument_info_init(); // 初始化仪表信息
+  63   1          aip3368h_module_init();
+  64   1      
+  65   1          tmr1_config(); //
+  66   1          tmr2_config(); // 扫描脉冲(电平变化)的定时器
+  67   1      
+  68   1          delay_ms(1); // 等待系统稳定
+  69   1                       // delay_ms(2000); // 等待系统稳定
+  70   1      }
+  71          
+  72          void main(void)
+  73          {
+  74   1          // 看门狗默认打开, 复位时间2s
+  75   1          system_init();
+  76   1      
+  77   1          // WDT_KEY = WDT_KEY_VAL(0xDD); //  关闭看门狗
   78   1      
-  79   1          /* 用户代码初始化接口 */
-  80   1          user_init();
-  81   1      
-  82   1          // USER_TO_DO 上电之后，需要先跑一遍开机动画，再继续主循环
+  79   1          // 关闭HCK和HDA的调试功能
+  80   1          WDT_KEY = 0x55;  // 解除写保护
+  81   1          IO_MAP &= ~0x01; // 清除这个寄存器的值，实现关闭HCK和HDA引脚的调试功能（解除�
+             -��射）
+  82   1          WDT_KEY = 0xBB;
   83   1      
-  84   1          // memset(aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
-  85   1          //     aip3368h_display_buff[0] = 0x01;
-  86   1          // aip3368h_display_engine_speed_back_light();
-  87   1          // aip3368h_display_engine_speed_scale_bar(12);
-  88   1          // aip3368h_display_speed(19);
-  89   1          // aip3368h_display_speed_scale_bar(15);
-  90   1          aip3368h_display_obj.is_in_boot_animiation = 1;
-  91   1      
-  92   1          /* 系统主循环 */
-  93   1          while (1)
-  94   1          {
-  95   2              // printf("main circle\n");
-  96   2              // DEBUG_PIN = ~DEBUG_PIN;
-  97   2      
-  98   2      #if 1
-  99   2              WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗并清除 wdt_pending
- 100   2      
- 101   2      #if TOUCH_KEY_ENABLE
-                      /* 按键扫描函数 */
-                      __tk_scan();                 // 使用了库里面的接口（闭源库）
-                      WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗并清除 wdt_pending
-              #endif
- 106   2      
- 107   2      #if AD_KEY_ENABLE
+  84   1          /* 用户代码初始化接口 */
+  85   1          user_init();
+  86   1      
+  87   1          // USER_TO_DO 上电之后，需要先跑一遍开机动画，再继续主循环
+  88   1          // aip3368h_display_obj.is_in_boot_animiation = 1;
+  89   1          // aip3368h_display_engine_speed_scale_bar(12);
+  90   1      
+  91   1          /* 系统主循环 */
+  92   1          while (1)
+  93   1          {
+  94   2              // printf("main circle\n");
+  95   2              // DEBUG_PIN = ~DEBUG_PIN;
+  96   2      
+  97   2      #if 1
+  98   2              WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗并清除 wdt_pending
+  99   2      
+ 100   2      #if PIN_LEVEL_SCAN_ENABLE
+ 101   2              pin_level_scan();
+ 102   2      #endif
+ 103   2      
+ 104   2      #if AD_KEY_ENABLE
                       key_driver_scan(&ad_key_para);
                       ad_key_handle(); // ad按键处理函数
-              #endif                   //  #if AD_KEY_ENABLE
- 111   2      
- 112   2      #if TOUCH_KEY_ENABLE
-                      key_driver_scan(&touch_key_para);
-                      touch_key_handle(); // 触摸按键处理函数
-C51 COMPILER V9.60.7.0   MAIN                                                              05/12/2026 18:04:06 PAGE 3   
-
               #endif
- 116   2      
- 117   2      #if SPEED_SCAN_ENABLE
- 118   2              // speed_scan(); // 检测时速
+ 108   2      
+ 109   2      #if SPEED_SCAN_ENABLE
+ 110   2              // speed_scan(); // 检测时速
+ 111   2              // aip3368h_display_speed_handle();
+ 112   2      #endif
+ 113   2      
+ 114   2              // mileage_scan(); // 检测大计里程和小计里程
+C51 COMPILER V9.60.7.0   MAIN                                                              05/13/2026 17:48:49 PAGE 3   
+
+ 115   2      
+ 116   2      #if ENGINE_SPEED_SCAN_ENABLE
+ 117   2              engine_speed_scan(); // 检测发动机转速
+ 118   2              aip3368h_display_engine_speed_handle();
  119   2      #endif
  120   2      
- 121   2              // mileage_scan(); // 检测大计里程和小计里程
- 122   2      
- 123   2      #if ENGINE_SPEED_SCAN_ENABLE
- 124   2              // engine_speed_scan(); // 检测发动机转速
- 125   2      #endif
- 126   2      
- 127   2      #if FUEL_CAPACITY_SCAN_ENABLE
- 128   2              // fuel_capacity_scan(); // 油量检测
- 129   2      #endif
+ 121   2      #if FUEL_CAPACITY_SCAN_ENABLE
+ 122   2              // fuel_capacity_scan(); // 油量检测
+ 123   2      #endif
+ 124   2      
+ 125   2      #if BATTERY_SCAN_ENABLE
+ 126   2              // battery_scan(); // 电池电量检测
+ 127   2      #endif
+ 128   2      
+ 129   2      #endif //
  130   2      
- 131   2      #if BATTERY_SCAN_ENABLE
- 132   2              // battery_scan(); // 电池电量检测
- 133   2      #endif
- 134   2      
- 135   2      #endif //
+ 131   2              // aip3368h_display_speed(199);
+ 132   2              // delay_ms(500);
+ 133   2              // aip3368h_module_display();
+ 134   2              // aip3368h_display_speed(0);
+ 135   2              // delay_ms(500);
  136   2      
- 137   2              // aip3368h_display_speed(199);
- 138   2              // delay_ms(500);
- 139   2              // aip3368h_module_display();
- 140   2              // aip3368h_display_speed(0);
- 141   2              // delay_ms(500);
- 142   2      
- 143   2              aip3368h_module_display();
- 144   2          }
- 145   1      }
- 146          
- 147          /**
- 148           * @}
- 149           */
- 150          
- 151          /*************************** (C) COPYRIGHT 2022 HUGE-IC ***** END OF FILE *****/
+ 137   2              aip3368h_module_display();
+ 138   2          }
+ 139   1      }
+ 140          
+ 141          /**
+ 142           * @}
+ 143           */
+ 144          
+ 145          /*************************** (C) COPYRIGHT 2022 HUGE-IC ***** END OF FILE *****/
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     91    ----
+   CODE SIZE        =    100    ----
    CONSTANT SIZE    =     11    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----

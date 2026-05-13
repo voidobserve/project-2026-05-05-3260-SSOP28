@@ -2,14 +2,6 @@
 
 #if ENGINE_SPEED_SCAN_ENABLE
 
-// 发动机转速的相关配置
-void engine_speed_scan_config(void)
-{
-    // 使用定时器扫描IO电平的方式 
-    P0_MD0 &= ~GPIO_P02_MODE_SEL(0x3); // 输入模式
-    P0_PU |= GPIO_P02_PULL_UP(0x01);   // 上拉
-}
-
 volatile u32 engine_speed_scan_cnt; // 检测到的脉冲个数，在定时器中断累加
 volatile u16 engine_speed_scan_ms;  // 在定时器中断累加
 
@@ -18,12 +10,66 @@ static volatile u32 cur_engine_speed_scan_ms;
 
 volatile bit flag_is_engine_speed_scan_over_time; // 标志位，检测是否超时
 
+// 计数器，计数满一段时间后，更新显示
+static volatile u16 aip3368h_display_engine_speed_refresh_time_cnt = 0;
+static volatile u16 aip3368h_display_exclamation_point_refresh_time_cnt = 0;
+
+// 发动机转速的相关配置
+void engine_speed_scan_config(void)
+{
+    // 使用定时器扫描IO电平的方式
+    P0_MD0 &= ~GPIO_P02_MODE_SEL(0x3); // 输入模式
+    P0_PU |= GPIO_P02_PULL_UP(0x01);   // 上拉
+}
+
 void update_engine_speed_scan_data(void) // 更新检测发动机转速的数据
 {
     cur_engine_speed_scan_cnt += engine_speed_scan_cnt;
     engine_speed_scan_cnt = 0;
     cur_engine_speed_scan_ms += engine_speed_scan_ms;
     engine_speed_scan_ms = 0;
+}
+
+void engine_speed_scan_timer_50us_isr(void)
+{
+    static volatile bit last_engine_speed_scan_level = 0; // 记录上一次检测到的引脚电平（发送机转速检测脚）
+
+    // 记录发动机转速扫描的时间
+    static u8 cnt = 0;
+    cnt++;
+    if (cnt >= 20) // 每1ms进入一次
+    {
+        cnt = 0;
+        engine_speed_scan_ms++;
+
+        if (engine_speed_scan_ms >= ENGINE_SPEED_SCAN_OVER_TIME &&
+            flag_is_engine_speed_scan_over_time == 0)
+        {
+            engine_speed_scan_ms = 0;
+            flag_is_engine_speed_scan_over_time = 1; // 说明超时，脉冲计数一直没有加一
+        }
+    }
+
+    if (ENGINE_SPEED_SCAN_PIN) // 检测发动机转速的引脚
+    {
+        if (0 == last_engine_speed_scan_level)
+        {
+            // 如果之前检测到低电平，现在检测到高电平，说明有上升沿，对脉冲计数加一
+            // if (detect_engine_pulse_cnt[0] < 4294967295) // 防止计数溢出
+            // {
+            //     detect_engine_pulse_cnt[0]++;
+            // }
+            engine_speed_scan_cnt++;
+            update_engine_speed_scan_data();
+        }
+
+        last_engine_speed_scan_level = 1;
+    }
+    else
+    {
+        // 如果现在检测到低电平
+        last_engine_speed_scan_level = 0;
+    }
 }
 
 // 发动机转速扫描
@@ -38,6 +84,7 @@ void engine_speed_scan(void)
         // printf("cur_engine_speed_scan_ms:%lu\n", cur_engine_speed_scan_ms);
         if (flag_is_engine_speed_scan_over_time)
         {
+            flag_is_engine_speed_scan_over_time = 0;
             rpm = 0;
         }
         else
@@ -56,14 +103,16 @@ void engine_speed_scan(void)
                 扫描时间内转过的圈数 == 一个脉冲对应转过的圈数 *　扫描时间内采集到的脉冲个数
                 1min转过的圈数　== 扫描时间内转过的圈数 / 扫描时间 * 1min
             */
-            rpm = (u32)cur_engine_speed_scan_cnt * ENGINE_SPEED_SCAN_A_PULSE_PER_TURNS * CONVER_ONE_MINUTE_TO_MS / cur_engine_speed_scan_ms;
+            rpm = (u32)cur_engine_speed_scan_cnt *
+                  ENGINE_SPEED_SCAN_A_PULSE_PER_TURNS *
+                  CONVER_ONE_MINUTE_TO_MS /
+                  cur_engine_speed_scan_ms;
         }
 
         // printf("cur engine speed pulse cnt:%lu\n",cur_engine_speed_scan_cnt);
 
         cur_engine_speed_scan_cnt = 0;
         cur_engine_speed_scan_ms = 0;
-        flag_is_engine_speed_scan_over_time = 0;
 
         // 限制待发送的发动机转速
         if (rpm >= 65535)
@@ -71,100 +120,107 @@ void engine_speed_scan(void)
             rpm = 65535;
         }
 
-#if 1
-        /*
-            扫描完就发送的程序，在显示部分会有卡顿，
-            显示做不了动画，只能单片机来调节
-        */
-
         // printf("cur rpm %lu\n", rpm);
 
-        instrument.engine_speeed = rpm; // 向全局变量存放发动机转速
-        // flag_get_engine_speed = 1;    // 发送发动机转速
-#endif
-
-        // engine_speed_buff_update(rpm);
+        instrument.engine_speed = rpm; // 向全局变量存放发动机转速
     }
 }
 
-#if 0
-void engine_speed_buff_update(u32 engine_speed)
+// // 定义发动机转速和挡位的映射关系类型
+// typedef struct
+// {
+//     u8 level_index;
+//     u8 engine_speed_per_k_rpm;
+// } engine_speed_map_t;
+// static const engine_speed_map_t engine_speed_map[] = {
+//     {0, 1}, // 挡位0 1000rpm
+//     {1, 2}, // 挡位1 2000rpm
+// };
+
+void aip3368h_display_engine_speed_refresh_time_add(void)
 {
-    static u32 last_engine_speed;       // 存放上一次采集到的发动机转速
-    u32 engine_speed_difference = 0;    // 存放 发动机转速 的差值
-    bit dir_of_engine_speed_change = 0; // 发动机转速变化的方向，0--变小，1--变大
-    u8 i;                               // 循环计数值（由下面的语句赋值，这里为了节省程序空间，没有给初始值）
-
-    if (engine_speed > last_engine_speed)
+    if (aip3368h_display_engine_speed_refresh_time_cnt < ((u16)-1))
     {
-        // 如果当前的发动机转速 大于 上一次采集到的发动机转速
-        engine_speed_difference = engine_speed - last_engine_speed;
-        dir_of_engine_speed_change = 1; // 表示发动机转速变大
-    }
-    else if (engine_speed < last_engine_speed)
-    {
-        // 如果当前的发动机转速 小于 上一次采集到的发动机转速
-        engine_speed_difference = last_engine_speed - engine_speed;
-        dir_of_engine_speed_change = 0; // 表示发动机转速变小
-    }
-    else
-    {
-        for (i = 0; i < ENGINE_SPEED_SCAN_BUFF_SIZE; i++)
-        {
-            engine_speed_buff[i] = engine_speed;
-        }
-
-        // // 没有差值，直接更新（修复没有差值且数值为0时，没有发送数据的问题）
-        // instrument.engine_speeed = engine_speed;
-        // flag_get_engine_speed = 1;
-
-        cur_send_engine_speed_buff_index = 0; // 游标复位
-        return;
+        aip3368h_display_engine_speed_refresh_time_cnt++;
     }
 
-    if (dir_of_engine_speed_change)
+    if (aip3368h_display_exclamation_point_refresh_time_cnt < ((u16)-1))
     {
-        // 如果发动机转速在变大，数组从 [0] ~ [ENGINE_SPEED_SCAN_BUFF_SIZE - 1] 数值越来越大
-        for (i = 0; i < ENGINE_SPEED_SCAN_BUFF_SIZE; i++)
-        {
-            engine_speed_buff[i] = engine_speed_difference * (i + 1) / ENGINE_SPEED_SCAN_BUFF_SIZE + last_engine_speed;
-        }
+        aip3368h_display_exclamation_point_refresh_time_cnt++;
     }
-    else
-    {
-        // 如果发动机转速在变小，数组从 [0] ~ [ENGINE_SPEED_SCAN_BUFF_SIZE - 1] 数值越来越小
-        for (i = 0; i < ENGINE_SPEED_SCAN_BUFF_SIZE; i++)
-        {
-            // 这一句会导致最后不能显示 数值为0 ：
-            // engine_speed_buff[ENGINE_SPEED_SCAN_BUFF_SIZE - 1 - i] = last_engine_speed - (u32)engine_speed_difference * (ENGINE_SPEED_SCAN_BUFF_SIZE - i - 1) / ENGINE_SPEED_SCAN_BUFF_SIZE;
-
-            engine_speed_buff[ENGINE_SPEED_SCAN_BUFF_SIZE - 1 - i] = last_engine_speed - (u32)engine_speed_difference * (ENGINE_SPEED_SCAN_BUFF_SIZE - i - 1) / ENGINE_SPEED_SCAN_BUFF_SIZE;
-        }
-    }
-
-    last_engine_speed = engine_speed;
-    cur_send_engine_speed_buff_index = 0; // 游标复位
 }
 
-void engine_speed_send_data(void)
+// 将采集到的发动机转速转换为仪表对应的转速滑动条挡位
+u8 engine_speed_get_level(void)
 {
-    if (flag_is_send_engine_speed_time_come) // 如果发送 发动机转速的时间到来
-    {
-        flag_is_send_engine_speed_time_come = 0;
+    u8 level = instrument.engine_speed / 1000; // 仪表上的一格对应1000rpm
 
-        if (cur_send_engine_speed_buff_index >= ENGINE_SPEED_SCAN_BUFF_SIZE)
+    if (level > 12)
+    {
+        level = 12;
+    }
+
+    return level;
+}
+
+void aip3368h_display_engine_speed_handle(void)
+{
+    // 延迟显示的发动机转速
+    static u8 engine_speed_level_of_lag = 0;
+    static u8 is_initiated = 0;
+    u8 cur_engine_speed_level = 0;
+
+    if (is_initiated == 0)
+    {
+        is_initiated = 1;
+
+        engine_speed_level_of_lag = engine_speed_get_level();
+    }
+
+    if (aip3368h_display_engine_speed_refresh_time_cnt >= AIP3368H_DISPLAY_ENGINE_SPEED_REFRESH_TIME)
+    {
+        aip3368h_display_engine_speed_refresh_time_cnt = 0;
+        cur_engine_speed_level = engine_speed_get_level();
+
+        if (engine_speed_level_of_lag < cur_engine_speed_level)
         {
-            // 防止越界
-            return;
+            engine_speed_level_of_lag++;
+        }
+        else if (engine_speed_level_of_lag > cur_engine_speed_level)
+        {
+            if (engine_speed_level_of_lag > 0)
+            {
+                engine_speed_level_of_lag--;
+            }
         }
 
-        instrument.engine_speeed = engine_speed_buff[cur_send_engine_speed_buff_index];
-        cur_send_engine_speed_buff_index++;
+        printf("instrument.engine_speed == %lu\n", instrument.engine_speed);
+        printf("engine_speed_level_of_lag == %u\n", (u16)engine_speed_level_of_lag);
+        aip3368h_display_engine_speed_scale_bar(engine_speed_level_of_lag);
+    }
 
-        // printf("instrument.engine_speed = %lu\n", instrument.engine_speeed);
-        flag_get_engine_speed = 1;
+    // USER_TO_DO 这里的闪烁需要放到错误处理函数来统一执行
+    if (aip3368h_display_exclamation_point_refresh_time_cnt >= 475)
+    {
+        aip3368h_display_exclamation_point_refresh_time_cnt = 0;
+
+        if (engine_speed_level_of_lag >= 8)
+        {
+            // 直接操作显存，判断当前感叹号对应的指示灯是否点亮，进而让它闪烁
+            if ((aip3368h_display_buff[0] >> 1) & 0x01)
+            {
+                aip3368h_display_buff[0] &= ~(0x01 << 1);
+            }
+            else
+            {
+                aip3368h_display_buff[0] |= (0x01 << 1);
+            }
+        }
+        else
+        {
+            aip3368h_display_exclamation_point(0);
+        }
     }
 }
-#endif
 
 #endif // #if ENGINE_SPEED_SCAN_ENABLE
