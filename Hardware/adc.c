@@ -17,7 +17,7 @@ void adc_config(void)
 #if FUEL_CAPACITY_SCAN_ENABLE
     // 检测油量的引脚：
     P0_MD0 |= GPIO_P01_MODE_SEL(0x3); // 模拟模式
-#endif 
+#endif
 
     ADC_CFG1 |= (0x0F << 3) | // ADC时钟分频为16分频，为系统时钟/16
                 (0x01 << 0);  // adc0中断使能
@@ -46,12 +46,13 @@ void adc_channel_set(adc_channel_t adc_channel)
     {
 #if BATTERY_SCAN_ENABLE
 
-    case ADC_CHANNEL_BATTERY:                      // 检测电池电量
-        ADC_ACON1 &= ~((0x01 << 5) | (0x07 << 0)); // 关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-        ADC_ACON1 |= (0x01 << 6) |                 // 使能ADC内部参考信号
-                     (0x03 << 3) |                 // 关闭测试信号
-                     (0x02 << 0);                  // 内部参考电压选择2.4V
-        ADC_CHS0 |= ADC_ANALOG_CHAN(0x04);         // P04通路
+    case ADC_CHANNEL_BATTERY:              // 检测电池电量
+        ADC_ACON1 &= ~((0x01 << 5) |       // 关闭ADC外部参考选择信号
+                       (0x07 << 0));       // 清空ADC内部参考电压的选择配置
+        ADC_ACON1 |= (0x01 << 6) |         // 使能ADC内部参考信号
+                     (0x03 << 3) |         // 关闭测试信号
+                     (0x01 << 0);          // 内部参考电压选择 2.0 V
+        ADC_CHS0 |= ADC_ANALOG_CHAN(0x04); // P04通路
         break;
 
 #endif
@@ -63,11 +64,12 @@ void adc_channel_set(adc_channel_t adc_channel)
         //    ADC_ACON1 &= ~((0x01 << 6) | (0x01 << 5) | (0x07 << 0)); // 关闭ADC中内部参考能使信号，关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
         //    ADC_ACON1 |= (0x03 << 3) | (0x06 << 0);                  // 关闭测试信号，选择内部VCCA作为参考电压（使用VCCA作为参考电压，需要关闭内部使能参考和外部使能参考）
 
-        ADC_ACON1 &= ~((0x01 << 5) | (0x07 << 0)); // 关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-        ADC_ACON1 |= (0x01 << 6) |                 // 使能ADC内部参考信号
-                     (0x03 << 3) |                 // 关闭测试信号
-                     (0x03 << 0);                  // 内部参考电压选择3.0V
-        ADC_CHS0 |= ADC_ANALOG_CHAN(0x01);         // P01通路
+        ADC_ACON1 &= ~((0x01 << 5) |
+                       (0x07 << 0));       // 关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
+        ADC_ACON1 |= (0x01 << 6) |         // 使能ADC内部参考信号
+                     (0x03 << 3) |         // 关闭测试信号
+                     (0x03 << 0);          // 内部参考电压选择3.0V
+        ADC_CHS0 |= ADC_ANALOG_CHAN(0x01); // P01通路
         break;
 
 #endif
@@ -78,6 +80,7 @@ void adc_channel_set(adc_channel_t adc_channel)
     // 切换完通道后，需要等待ADC模块配置稳定，至少20us以上
 }
 
+#if 0
 // 获取adc值，存放到变量adc_val中(adc单次转换)
 u16 adc_single_convert(void)
 {
@@ -115,6 +118,7 @@ u16 adc_getval(void)
 
     return adc_val_tmp;
 }
+#endif 
 
 // 由定时器调用，adc通道切换
 void adc_channel_switch_by_isr(void)
@@ -161,7 +165,7 @@ void ADC_IRQHandler(void) interrupt ADC_IRQn
         switch (adc_channel_status)
         {
         case ADC_CHANNEL_STATUS_SEL_BATTERY_END:
-            adc_update_battery_val(adc_val);
+            bat_adc_val_samples_update(adc_val);
             break;
 
         case ADC_CHANNEL_STATUS_SEL_FUEL_END:
@@ -174,4 +178,4 @@ void ADC_IRQHandler(void) interrupt ADC_IRQn
     __IRQnIPnPop(ADC_IRQn);
 }
 
-#endif 
+#endif

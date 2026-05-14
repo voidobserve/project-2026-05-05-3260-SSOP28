@@ -2,123 +2,100 @@
 
 #if BATTERY_SCAN_ENABLE
 
-static volatile u16 adc_val_of_battery; // 电池电压对应的ad值
+// static volatile u16 adc_val_of_battery; // 电池电压对应的ad值
 
 volatile u16 battery_scan_time_cnt; // 电池扫描时间计时（在定时器中累加）
 
-void adc_update_battery_val(u16 adc_val)
-{
-    adc_val_of_battery = adc_val; 
-} 
+// 滑动平均：
+#define SAMPLE_COUNT 20 // 样本计数
+static volatile u16 bat_adc_val_samples[SAMPLE_COUNT] = {0};
+static volatile u8 bat_adc_val_sample_index = 0;
 
-/**
- * @brief 将ad值转换为对应的电压值
- *
- * @param arg_adc_val 采集到的ad值
- * @return u8 计算好的电压值，单位0.1V
- */
-u16 conver_adc_val_to_voltage(u16 arg_adc_val)
+// 初始化 滑动平均 数组
+static void __bat_adv_val_samples_init__(u16 adc_val)
 {
-    /*
-        采集到的ad值范围：0~4095
-        ad值对应的电压： 0 ~ MAX_VOLTAGE_OF_BATTERY
-        那么 每单位ad值对应 MAX_VOLTAGE_OF_BATTERY / 4096
-    */
-    // return (u32)arg_adc_val * MAX_VOLTAGE_OF_BATTERY / 4096;
-
-    // 使用2.4V参考电压，12位精度（0 ~ 4095）
-    // 电池电压 1/11 分压：
-    return (u32)arg_adc_val * 240 * 11 / 10 / 4096;
+    u8 i;
+    for (i = 0; i < SAMPLE_COUNT; i++)
+    {
+        bat_adc_val_samples[i] = adc_val;
+    }
 }
 
-// 将电池电压转换为对应的百分比
-// voltage： 0~255 ， 对应0~25.5V
-// 例如 voltage == 140，对应14.0V
-u8 conver_voltage_of_battery_to_percentage(u8 voltage)
+// 将数据放入滑动平均数组
+void bat_adc_val_samples_update(u16 adc_val)
 {
-    u8 tmp;
-
-    // 客户要求，如果检测到大于15V，就认为满电
-    if (voltage >= 150)
+    static u8 is_initiated = 0;
+    if (0 == is_initiated)
     {
-        tmp = 100;
-    }
-    else
-    {
-        // 如果电压小于15V，根据公式来得到百分比
-        // 用电池电压voltage除以MAX_VOLTAGE_OF_BATTERY，得到占比，再乘以100，得到百分比
-        tmp = (u16)voltage * 100 / MAX_VOLTAGE_OF_BATTERY;
+        __bat_adv_val_samples_init__(adc_val);
+        is_initiated = 1;
+        return;
     }
 
-    return tmp;
+    bat_adc_val_samples[bat_adc_val_sample_index++] = adc_val;
+    if (bat_adc_val_sample_index >= SAMPLE_COUNT)
+        bat_adc_val_sample_index = 0;
+}
+
+// 从滑动平均数组中读出数据
+u16 bat_adc_val_get(void)
+{
+    u8 i;
+    u32 sum = 0;
+    for (i = 0; i < SAMPLE_COUNT; i++)
+    {
+        sum += bat_adc_val_samples[i];
+    }
+    sum /= SAMPLE_COUNT;
+
+    return sum;
+}
+
+void bat_scan_time_add(void)
+{
+    if (battery_scan_time_cnt < ((u16)-1))
+    {
+        battery_scan_time_cnt++;
+    }
 }
 
 void battery_scan(void)
 {
-    u16 voltage_of_battery = 0;       // 存放电池电压
-    u8 cur_percentage_of_battery = 0; // 存放当前电池电量百分比
+    u16 adc_val;
+    u16 voltage;
 
-    static volatile u32 battery_scan_cnt; // 记录电池电压扫描次数
-    static volatile u32 battery_val;      // 累加每次采集到的ad值，到了电池扫描时间时，直接求平均值
-
-    static bit flag_is_power_on_first = 1; // 是否第一次上电
-
-#if 1
-    // USER_TO_DO 可能要用 static 类型的变量存放ad值，需要注意等初始化完成才能使用
-    // USER_TO_DO 可能要改成滑动平均的方式
-    // adc_sel_pin(ADC_PIN_BATTERY);
-    // battery_val += adc_getval(); // 可能要防止计数溢出
-    battery_scan_cnt++;          // 上面采集到一次ad值之后，这里加一表示采集了一次
-
-    if (flag_is_power_on_first)
+    if (battery_scan_time_cnt >= BAT_SCAN_PERIOD)
     {
-        // 第一次上电
-        battery_val /= battery_scan_cnt; // 取平均数
-        voltage_of_battery = conver_adc_val_to_voltage(battery_val);
-        cur_percentage_of_battery = conver_voltage_of_battery_to_percentage(voltage_of_battery);
-        battery_val = 0;           // 清空数值
-        battery_scan_cnt = 0;      // 清空计数值
-        battery_scan_time_cnt = 0; // 清空时间计数值
-
-        instrument.battery = cur_percentage_of_battery;
-        instrument.voltage_of_battery = voltage_of_battery;
-
-
-
-        // printf("cur voltage of battery : %bu\n", voltage_of_battery);
-        // printf("cur percent of battery : %bu\n", cur_percentage_of_battery);
-
-        // flag_get_voltage_of_battery = 1;
-        // flag_get_battery = 1;
-
-        flag_is_power_on_first = 0;
+        battery_scan_time_cnt = 0;
     }
     else
     {
-        // 不是第一次上电
-
-        if (battery_scan_time_cnt >= BATTERY_SCAN_UPDATE_TIME_MS) // 如果到了电池数据的更新时间（更新/发送电池数据的时间）
-        {
-            battery_val /= battery_scan_cnt; // 取平均数
-            voltage_of_battery = conver_adc_val_to_voltage(battery_val);
-            cur_percentage_of_battery = conver_voltage_of_battery_to_percentage(voltage_of_battery);
-            battery_val = 0;           // 清空数值
-            battery_scan_cnt = 0;      // 清空计数值
-            battery_scan_time_cnt = 0; // 清空时间计数值
-
-            instrument.battery = cur_percentage_of_battery;
-            instrument.voltage_of_battery = voltage_of_battery;
-
-            // printf("cur voltage of battery : %bu\n", voltage_of_battery);
-            // printf("cur percent of battery : %bu\n", cur_percentage_of_battery);
-
-            // flag_get_voltage_of_battery = 1;
-            // flag_get_battery = 1;
-        }
+        return;
     }
 
-#endif
- 
+    // 这里必须要等滑动平均的数组初始化完成，再获取ad值。否则会得到错误的ad值
+    adc_val = bat_adc_val_get();
+    voltage = ADC_VAL_TO_BAT_VOLTAGE(adc_val);
+    if (voltage >= BAT_CANCEL_LOW_VOLTAGE_WARNING_THRESHOLD)
+    {
+        instrument.flag_is_in_warning_of_low_voltage = 0;
+        // 取消报警之后，需要立即更新显示
+        aip3368h_display_bat_err_icon(0);
+    }
+    else if (voltage < BAT_LOW_VOLTAGE_WARNING_THRESHOLD)
+    {
+        instrument.flag_is_in_warning_of_low_voltage = 1;
+    }
+    else
+    {
+        /*
+            如果检测到的电压在 低电压报警阈值 和 取消低电压报警阈值之间，
+            不做处理，保持之前的显示
+        */
+    }
+
+    // printf("adc_val == %u\n", adc_val);
+    // printf("voltage == %u\n", voltage);
 }
 
 #endif // BATTERY_SCAN_ENABLE

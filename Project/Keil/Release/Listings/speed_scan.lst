@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/13/2026 17:31:30 PAGE 1   
+C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/14/2026 14:23:12 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE SPEED_SCAN
@@ -62,7 +62,7 @@ line level    source
   49   1      
   50   1          if (SPEED_SCAN_PIN) // 检测时速的引脚
   51   1          {
-C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/13/2026 17:31:30 PAGE 2   
+C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/14/2026 14:23:12 PAGE 2   
 
   52   2              if (0 == last_speed_scan_level)
   53   2              {
@@ -126,7 +126,7 @@ line level    source
  105   3                      cur_speed == 采集的脉冲个数对应走过的距离（单位：mm）/ 采集所用的�
              -��间（单位：ms）* 3.6
  106   3                      换成单片机可以计算的格式：
-C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/13/2026 17:31:30 PAGE 3   
+C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/14/2026 14:23:12 PAGE 3   
 
  107   3                      cur_speed == 采集的脉冲个数对应走过的距离（单位：mm） * 36 / 10 / 采�
              -�所用的时间（单位：ms）
@@ -190,7 +190,7 @@ line level    source
  165   4                  }
  166   3              }
  167   2              else if (speed_of_lag < instrument.speed)
-C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/13/2026 17:31:30 PAGE 4   
+C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/14/2026 14:23:12 PAGE 4   
 
  168   2              {
  169   3                  speed_of_lag++;

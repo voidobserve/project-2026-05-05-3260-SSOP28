@@ -1,7 +1,6 @@
 #include "instrument.h"
 #include <string.h> // memset()
-
-// volatile fun_info_t fun_info; // 存放所有功能状态的结构体变量
+ 
 
 volatile instrument_t instrument = {0};
 

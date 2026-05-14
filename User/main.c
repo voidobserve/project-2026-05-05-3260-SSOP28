@@ -83,9 +83,8 @@ void main(void)
     /* 用户代码初始化接口 */
     user_init();
 
-    // USER_TO_DO 上电之后，需要先跑一遍开机动画，再继续主循环
-    // aip3368h_display_obj.is_in_boot_animiation = 1;
-    // aip3368h_display_engine_speed_scale_bar(12);
+    // 上电之后，需要先跑一遍开机动画，再继续主循环
+    // aip3368h_display_boot_animation_handle();
 
     /* 系统主循环 */
     while (1)
@@ -118,11 +117,11 @@ void main(void)
 #endif
 
 #if FUEL_CAPACITY_SCAN_ENABLE
-        // fuel_capacity_scan(); // 油量检测
+        fuel_capacity_scan(); // 油量检测
 #endif
 
 #if BATTERY_SCAN_ENABLE
-        // battery_scan(); // 电池电量检测
+        battery_scan(); // 电池电量检测
 #endif
 
 #endif //
@@ -132,7 +131,7 @@ void main(void)
         // aip3368h_module_display();
         // aip3368h_display_speed(0);
         // delay_ms(500);
-
+        aip3368h_display_err_handle();
         aip3368h_module_display();
     }
 }

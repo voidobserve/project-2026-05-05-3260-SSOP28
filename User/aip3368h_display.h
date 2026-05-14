@@ -35,14 +35,19 @@ void aip3368h_display_speed_km_icon(u8 is_enable);
 void aip3368h_display_speed(u8 speed);
 void aip3368h_display_speed_scale_bar(u8 level);
 
+// void aip3368h_display_boot_animation_1ms_isr(void);
+void aip3368h_display_boot_animation_time_add(void);
+void aip3368h_display_boot_animation_handle(void);
+
+void aip3368h_display_err_handle_time_add(void);
+void aip3368h_display_err_handle(void);
+
 #if AIP3368H_DISPLAY_TEST_ENABLE
 void aip3368h_display_test_engine_speed_scale_bar_1ms_isr(void);
 void aip3368h_display_test_fuel_level_1ms_isr(void);
 void aip3368h_display_test_mileage_1ms_isr(void);
 void aip3368h_display_test_speed_1ms_isr(void);
 void aip3368h_display_test_speed_scale_bar_1ms_isr(void);
-
-void aip3368h_display_boot_animation_1ms_isr(void);
 
 void aip3368h_display_test(void);
 #endif

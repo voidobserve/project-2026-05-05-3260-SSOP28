@@ -4,10 +4,19 @@
 
 static volatile u16 adc_val_of_fuel = 0;
 
+// volatile u32 fuel_capacity_scan_cnt = 0; // 扫描时间计数，在1ms定时器中断中累加
 
-volatile u32 fuel_capacity_scan_cnt = 0; // 扫描时间计数，在1ms定时器中断中累加
- 
+static volatile u16 fuel_capacity_scan_time_cnt = 0;
 
+void fuel_capacity_scan_time_add(void)
+{
+    if (fuel_capacity_scan_time_cnt < ((u16)-1))
+    {
+        fuel_capacity_scan_time_cnt++;
+    }
+}
+
+// USER_TO_DO adc值改成由中断更新
 void adc_update_fuel_val(u16 adc_val)
 {
     adc_val_of_fuel = adc_val;
@@ -43,7 +52,7 @@ void samples_init(u16 adc_val)
 
 // 将油量检测对应的ad值转换成百分比值
 u8 convert_fuel_adc_to_percent(u16 fuel_adc_val)
-{ 
+{
     u8 ret = 0;
 
     // // 如果超出了 最大油量的ad值和最小油量的ad值之间的范围 ，说明没有接油量检测
@@ -132,7 +141,7 @@ u8 convert_fuel_adc_to_percent(u16 fuel_adc_val)
     // ret = 51; // 51及以上，显示4格
     // ret = 68; // 68及以上，显示5格
     // ret = 84; // 84及以上，显示6格
-    return ret; 
+    return ret;
 }
 
 enum
@@ -143,6 +152,7 @@ enum
 
 void fuel_capacity_scan(void)
 {
+#if 0
     u8 fuel_percent = 0;
     u16 fuel_adc_val = 0;
 
@@ -168,7 +178,7 @@ void fuel_capacity_scan(void)
             {
                 fuel_capacity_scan_cnt = 0;
                 // fuel_adc_val /= fuel_adc_scan_cnt; // 求出扫描时间内得到的ad平均值
-                adc_val = adc_getval(); //
+                // adc_val = adc_getval(); //
                 samples_init(adc_val);
                 fuel_adc_val = adc_val;
 
@@ -199,8 +209,9 @@ void fuel_capacity_scan(void)
         // fuel_adc_scan_cnt = 0;
         fuel_adc_val = 0;
         // flag_get_fuel = 1;
-    } //  if (fuel_capacity_scan_cnt >= FUEL_UPDATE_TIME)
+    }
+
+#endif
 }
 
 #endif
-

@@ -13,7 +13,7 @@ volatile u16 aip3368h_display_buff[AIP3368H_DEV_NUM];
 void aip3368h_refresh_time_add(void)
 {
     // 防止计数溢出
-    // if (aip3368h_refresh_cnt < 255)
+    if (aip3368h_refresh_cnt < ((u16)-1))
     {
         aip3368h_refresh_cnt++;
     }
@@ -96,11 +96,11 @@ void aip3368h_module_display(void)
     aip3368h_module_send_data_to_all_dev(aip3368h_display_buff, AIP3368H_DEV_NUM);
 }
 
-void aip3368h_module_clear(void)
-{
-    memset(aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
-    aip3368h_module_send_data_to_all_dev(aip3368h_display_buff, AIP3368H_DEV_NUM);
-}
+// void aip3368h_module_clear(void)
+// {
+//     memset(aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
+//     aip3368h_module_send_data_to_all_dev(aip3368h_display_buff, AIP3368H_DEV_NUM);
+// }
 
 void aip3368h_module_init(void)
 {

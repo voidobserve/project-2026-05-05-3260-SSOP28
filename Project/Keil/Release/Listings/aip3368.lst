@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   AIP3368                                                           05/13/2026 17:31:30 PAGE 1   
+C51 COMPILER V9.60.7.0   AIP3368                                                           05/14/2026 14:23:12 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE AIP3368
@@ -24,7 +24,7 @@ line level    source
   13          void aip3368h_refresh_time_add(void)
   14          {
   15   1          // 防止计数溢出
-  16   1          // if (aip3368h_refresh_cnt < 255)
+  16   1          if (aip3368h_refresh_cnt < ((u16)-1))
   17   1          {
   18   2              aip3368h_refresh_cnt++;
   19   2          }
@@ -62,7 +62,7 @@ line level    source
   51   1      
   52   1          // 一帧完整数据
   53   1          for (i = 0; i < len; i++)
-C51 COMPILER V9.60.7.0   AIP3368                                                           05/13/2026 17:31:30 PAGE 2   
+C51 COMPILER V9.60.7.0   AIP3368                                                           05/14/2026 14:23:12 PAGE 2   
 
   54   1          {
   55   2              aip3368h_module_send_data_to_one_dev(buff[i]);
@@ -109,11 +109,11 @@ line level    source
   96   1          aip3368h_module_send_data_to_all_dev(aip3368h_display_buff, AIP3368H_DEV_NUM);
   97   1      }
   98          
-  99          void aip3368h_module_clear(void)
- 100          {
- 101   1          memset(aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
- 102   1          aip3368h_module_send_data_to_all_dev(aip3368h_display_buff, AIP3368H_DEV_NUM);
- 103   1      }
+  99          // void aip3368h_module_clear(void)
+ 100          // {
+ 101          //     memset(aip3368h_display_buff, 0x00, sizeof(aip3368h_display_buff));
+ 102          //     aip3368h_module_send_data_to_all_dev(aip3368h_display_buff, AIP3368H_DEV_NUM);
+ 103          // }
  104          
  105          void aip3368h_module_init(void)
  106          {
@@ -126,7 +126,7 @@ line level    source
  113   1          P1_MD1 |= GPIO_P16_MODE_SEL(0x01);
  114   1          FOUT_S16 = GPIO_FOUT_AF_FUNC;
  115   1          // DIO
-C51 COMPILER V9.60.7.0   AIP3368                                                           05/13/2026 17:31:30 PAGE 3   
+C51 COMPILER V9.60.7.0   AIP3368                                                           05/14/2026 14:23:12 PAGE 3   
 
  116   1          P2_MD1 &= ~GPIO_P25_MODE_SEL(0x03);
  117   1          P2_MD1 |= GPIO_P25_MODE_SEL(0x01);
@@ -155,7 +155,7 @@ line level    source
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    234    ----
+   CODE SIZE        =    233    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =     18       5
    PDATA SIZE       =   ----    ----

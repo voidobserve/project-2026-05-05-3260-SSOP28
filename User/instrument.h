@@ -43,56 +43,22 @@ typedef struct
     u8 is_save_data_valid;
 } save_info_t;
 
-// 定义，存储所有功能的状态的结构体
-typedef struct
-{
-    save_info_t save_info; // 存储在flash中的结构体变量
-    // aip1302_saveinfo_t aip1302_saveinfo; // 存放 从aip1302读取的数据 / 要写入到aip1302的数据
-
-    u32 engine_speed;      // 发动机的转速（单位：rpm）
-    u16 speed;              // 时速(单位：km/h，使用英制单位时，只需要在发送时进行转换)
-    u16 voltage_of_battery; // 电池电压(单位：0.1V)
-
-    u8 gear;    // 挡位
-    u8 battery; // 电池电量(单位：百分比)
-    u8 brake;   // 刹车的状态
-
-    u8 fuel; // 油量(单位：百分比)
-
-    // #if TEMP_OF_WATER_SCAN_ENABLE
-    u8 flag_is_in_water_temp_warning; // 标志位，是否处于水温报警（1--水温报警，0--解除水温报警）
-                                      // #endif
-    u8 flag_is_detect_malfunction;    // 标志位，是否检测到了故障
-    u8 flag_is_detect_abs;            // 标志位，是否检测到了ABS，0--否，1--检测到了ABS故障
-
-    // 在结构体中使用一位的数据：(调用时，占用的程序空间会比单独用u8类型的还要大)
-    // u8 bit0 : 1;
-    // u8 bit1 : 1;
-    // u8 bit2 : 1;
-    // u8 bit3 : 1;
-    // u8 bit4 : 1;
-    // u8 bit5 : 1;
-    // u8 bit6 : 1;
-    // u8 bit7 : 1;
-
-} fun_info_t;
-
-
 typedef struct
 {
     save_info_t save_info;
-    u32 engine_speed;      // 发动机的转速（单位：rpm）
-    u8 speed;              // 时速(单位：km/h，使用英制单位时，需要进行转换)
-    u16 voltage_of_battery; // 电池电压(单位：0.1V)
-    u8 battery;             // 电池电量(单位：百分比)
+    u32 engine_speed;       // 发动机的转速（单位：rpm）
+    u8 speed;               // 时速(单位：km/h，使用英制单位时，需要进行转换)
+    // u16 voltage_of_battery; // 电池电压(单位：0.1V)
+    // u8 battery;             // 电池电量(单位：百分比)
     u8 fuel;                // 油量(单位：百分比)
-    u8 flag_is_in_warning;  // 标志位，是否处于报警状态
+
+    // 标志位，是否处于发动机转速过高的报警状态
+    u8 flag_is_engine_speed_warning_enable;  
+    // 标志位，是否处于低电压报警状态
+    u8 flag_is_in_warning_of_low_voltage; 
 
 } instrument_t;
 extern volatile instrument_t instrument;
-
-extern void fun_info_init(void); // 初始化存放所有信息的结构体变量
-extern void fun_info_save(void); // 将信息写回flash
 
 void instrument_info_init(void);
 void instrument_info_save(void);

@@ -22,6 +22,6 @@ void aip3368h_refresh_time_add();
 void aip3368h_module_init(void);
 // void aip3368h_module_uninit(void);
 void aip3368h_module_display(void);
-void aip3368h_module_clear(void);
+// void aip3368h_module_clear(void);
 
 #endif

@@ -154,6 +154,12 @@ static const speed_scale_bar_map_t speed_scale_bar_map[16] = {
 
 volatile aip3368h_display_obj_t aip3368h_display_obj = {0};
 
+static volatile u16 aip3368h_display_boot_animation_time_cnt = 0;
+// 给开机动画处理函数提供时基：
+static volatile bit aip3368h_display_boot_animation_time_add_flag = 0;
+
+static volatile u16 aip3368h_display_err_handle_time_cnt = 0;
+
 // 显示发动机转速圆盘对应的背光灯
 void aip3368h_display_engine_speed_back_light(void)
 {
@@ -269,7 +275,6 @@ void aip3368h_display_err_icon(u8 is_enable)
     }
 }
 
-// USER_TO_DO 需要给传参定义一个枚举类型，方便索引和维护
 /**
  * @brief
  *
@@ -715,12 +720,6 @@ void __aip3368h_display_boot_animation_in_speed_and_mileage__(void)
     }
     else if (1 == animation_phase)
     {
-        // if (animation_step >= 100)
-        // {
-        //     animation_step = 0;
-        //     animation_phase = 2; // 进入递减阶段
-        // }
-
         if (animation_step >= 200)
         {
             animation_step = 0;
@@ -789,63 +788,180 @@ void __aip3368h_display_boot_animation_in_fuel_level__(void)
     }
 }
 
-void aip3368h_display_boot_animation_1ms_isr(void)
-{
-    // static u8 level = 0; // Unused variable removed
-    static u16 animation_time_cnt = 0;
-    static u8 animation_initiated = 0;
+// void aip3368h_display_boot_animation_1ms_isr(void)
+// {
+//     // static u8 level = 0; // Unused variable removed
+//     static u16 animation_time_cnt = 0;
+//     static u8 animation_initiated = 0;
 
-    if (aip3368h_display_obj.is_in_boot_animiation == 0)
+//     if (aip3368h_display_obj.is_in_boot_animiation == 0)
+//     {
+//         return;
+//     }
+
+//     if (0 == animation_initiated)
+//     {
+//         aip3368h_display_engine_speed_back_light(); // 点亮背光
+//         aip3368h_display_exclamation_point(1);      // 点亮感叹号
+
+//         aip3368h_display_mileage_km_icon(1); // 点亮公里的km字样图标
+//         aip3368h_display_speed_km_icon(1);   // 点亮速度的km字样图标
+//         // 点亮 ODO 、 TRIP 字样的图标
+//         aip3368h_display_buff[3] |= (0x01 << 15); // 大计里程 ODO 指示灯，第 0 格
+//         aip3368h_display_buff[3] |= (0x01 << 14); // 大计里程 ODO 指示灯，第 1 格
+//         aip3368h_display_buff[3] |= (0x01 << 1);  // 小计里程 TRIP 指示灯，第 0 格
+//         aip3368h_display_buff[4] |= (0x01 << 15); // 小计里程 TRIP 指示灯，第 1 格
+//         aip3368h_display_buff[5] |= (0x01 << 8);  // 里程 小数点 指示灯
+
+//         aip3368h_display_bat_err_icon(1);
+//         aip3368h_display_err_icon(1);
+
+//         // 显示时速第 0 位的 1：
+//         aip3368h_display_buff[2] |= (0x01 << 8);
+//         aip3368h_display_buff[7] |= (0x01 << 3);
+
+//         animation_initiated = 1;
+//     }
+
+//     animation_time_cnt++;
+
+//     __aip3368h_display_boot_animation_in_engine_speed_scale_bar__();
+//     __aip3368h_display_boot_animation_in_speed_scale_bar__();
+//     __aip3368h_display_boot_animation_in_speed_and_mileage__();
+//     __aip3368h_display_boot_animation_in_fuel_level__();
+
+//     // 4s的开机动画结束
+//     if (animation_time_cnt >= 4000)
+//     {
+//         aip3368h_display_obj.is_in_boot_animiation = 0;
+//         // 动画结束后清空显示
+
+//         // 后面添加了相关的检测和更新函数之后，下面的操作可以省略
+//         aip3368h_display_engine_speed_scale_bar(0); // 不显示发动机转速刻度条
+//         aip3368h_display_exclamation_point(0);      // 不显示感叹号
+
+//         aip3368h_display_bat_err_icon(0);
+//         aip3368h_display_err_icon(0);
+//         aip3368h_display_speed_scale_bar(16);
+//         // USER_TO_DO 需要根据记忆的 ODO、TRIP ，显示对应的图标
+//     }
+// }
+
+void aip3368h_display_boot_animation_time_add(void)
+{
+    if (aip3368h_display_obj.is_in_boot_animiation == 1)
+    {
+        // 在开机动画中，累加开机动画的时间
+        aip3368h_display_boot_animation_time_cnt++;
+        aip3368h_display_boot_animation_time_add_flag = 1;
+    }
+}
+
+// 开机动画处理函数
+void aip3368h_display_boot_animation_handle(void)
+{
+    aip3368h_display_obj.is_in_boot_animiation = 1;
+    aip3368h_display_engine_speed_back_light(); // 点亮背光
+    aip3368h_display_exclamation_point(1);      // 点亮感叹号
+
+    aip3368h_display_mileage_km_icon(1); // 点亮公里的km字样图标
+    aip3368h_display_speed_km_icon(1);   // 点亮速度的km字样图标
+    // 点亮 ODO 、 TRIP 字样的图标
+    aip3368h_display_buff[3] |= (0x01 << 15); // 大计里程 ODO 指示灯，第 0 格
+    aip3368h_display_buff[3] |= (0x01 << 14); // 大计里程 ODO 指示灯，第 1 格
+    aip3368h_display_buff[3] |= (0x01 << 1);  // 小计里程 TRIP 指示灯，第 0 格
+    aip3368h_display_buff[4] |= (0x01 << 15); // 小计里程 TRIP 指示灯，第 1 格
+    aip3368h_display_buff[5] |= (0x01 << 8);  // 里程 小数点 指示灯
+
+    aip3368h_display_bat_err_icon(1);
+    aip3368h_display_err_icon(1);
+
+    // 显示时速第 0 位的 1：
+    aip3368h_display_buff[2] |= (0x01 << 8);
+    aip3368h_display_buff[7] |= (0x01 << 3);
+
+    while (aip3368h_display_obj.is_in_boot_animiation)
+    {
+        if (aip3368h_display_boot_animation_time_add_flag)
+        {
+            aip3368h_display_boot_animation_time_add_flag = 0;
+        }
+        else
+        {
+            continue;
+        }
+
+        __aip3368h_display_boot_animation_in_engine_speed_scale_bar__();
+        __aip3368h_display_boot_animation_in_speed_scale_bar__();
+        __aip3368h_display_boot_animation_in_speed_and_mileage__();
+        __aip3368h_display_boot_animation_in_fuel_level__();
+
+        // 4s的开机动画结束
+        if (aip3368h_display_boot_animation_time_cnt >= 4000)
+        {
+            aip3368h_display_obj.is_in_boot_animiation = 0;
+            // 动画结束后清空显示
+
+            // 后面添加了相关的检测和更新函数之后，下面的操作可以省略
+            aip3368h_display_engine_speed_scale_bar(0); // 不显示发动机转速刻度条
+            aip3368h_display_exclamation_point(0);      // 不显示感叹号
+
+            aip3368h_display_bat_err_icon(0);
+            aip3368h_display_err_icon(0);
+            aip3368h_display_speed_scale_bar(16);
+            // USER_TO_DO 需要根据记忆的 ODO、TRIP ，显示对应的图标
+        }
+
+        aip3368h_module_display();
+    }
+}
+
+void aip3368h_display_err_handle_time_add(void)
+{
+    if (aip3368h_display_err_handle_time_cnt < ((u16)-1))
+    {
+        aip3368h_display_err_handle_time_cnt++;
+    }
+}
+void aip3368h_display_err_handle(void)
+{
+    if (aip3368h_display_err_handle_time_cnt < 475)
     {
         return;
     }
-
-    if (0 == animation_initiated)
+    else
     {
-        aip3368h_display_engine_speed_back_light(); // 点亮背光
-        aip3368h_display_exclamation_point(1);      // 点亮感叹号
-
-        aip3368h_display_mileage_km_icon(1); // 点亮公里的km字样图标
-        aip3368h_display_speed_km_icon(1);   // 点亮速度的km字样图标
-        // 点亮 ODO 、 TRIP 字样的图标
-        aip3368h_display_buff[3] |= (0x01 << 15); // 大计里程 ODO 指示灯，第 0 格
-        aip3368h_display_buff[3] |= (0x01 << 14); // 大计里程 ODO 指示灯，第 1 格
-        aip3368h_display_buff[3] |= (0x01 << 1);  // 小计里程 TRIP 指示灯，第 0 格
-        aip3368h_display_buff[4] |= (0x01 << 15); // 小计里程 TRIP 指示灯，第 1 格
-        aip3368h_display_buff[5] |= (0x01 << 8);  // 里程 小数点 指示灯
-
-        aip3368h_display_bat_err_icon(1);
-        aip3368h_display_err_icon(1);
-
-        // 显示时速第 0 位的 1：
-        aip3368h_display_buff[2] |= (0x01 << 8);
-        aip3368h_display_buff[7] |= (0x01 << 3);
-
-        animation_initiated = 1;
+        aip3368h_display_err_handle_time_cnt = 0;
     }
 
-    animation_time_cnt++;
-
-    __aip3368h_display_boot_animation_in_engine_speed_scale_bar__();
-    __aip3368h_display_boot_animation_in_speed_scale_bar__();
-    __aip3368h_display_boot_animation_in_speed_and_mileage__();
-    __aip3368h_display_boot_animation_in_fuel_level__();
-
-    // 4s的开机动画结束
-    if (animation_time_cnt >= 4000)
+    // 发动机转速过高报警
+    if (instrument.flag_is_engine_speed_warning_enable)
     {
-        aip3368h_display_obj.is_in_boot_animiation = 0;
-        // 动画结束后清空显示
+        // 直接操作显存，判断当前感叹号对应的指示灯是否点亮，进而让它闪烁
+        if ((aip3368h_display_buff[0] >> 1) & 0x01)
+        {
+            aip3368h_display_buff[0] &= ~(0x01 << 1);
+        }
+        else
+        {
+            aip3368h_display_buff[0] |= (0x01 << 1);
+        }
+    }
 
-        // 后面添加了相关的检测和更新函数之后，下面的操作可以省略
-        aip3368h_display_engine_speed_scale_bar(0); // 不显示发动机转速刻度条
-        aip3368h_display_exclamation_point(0);      // 不显示感叹号
-        
-
-        aip3368h_display_bat_err_icon(0);
-        aip3368h_display_err_icon(0);
-        aip3368h_display_speed_scale_bar(16); 
-        // USER_TO_DO 需要根据记忆的 ODO、TRIP ，显示对应的图标
+    // 低电量报警
+    if (instrument.flag_is_in_warning_of_low_voltage)
+    {
+        // 直接操作显存，判断当前感叹号对应的指示灯是否点亮，进而让它闪烁
+        if ((aip3368h_display_buff[2] >> 10) & 0x01)
+        {
+            aip3368h_display_buff[2] &= ~(0x01 << 10); // 电池电量低，第 1 格指示灯（红）
+            aip3368h_display_buff[2] &= ~(0x01 << 11); // 电池电量低，第 0 格指示灯（红）
+        }
+        else
+        {
+            aip3368h_display_buff[2] |= 0x01 << 10; // 电池电量低，第 1 格指示灯（红）
+            aip3368h_display_buff[2] |= 0x01 << 11; // 电池电量低，第 0 格指示灯（红）
+        }
     }
 }
 

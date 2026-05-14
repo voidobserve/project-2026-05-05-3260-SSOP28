@@ -194,33 +194,45 @@ void aip3368h_display_engine_speed_handle(void)
             }
         }
 
-        printf("instrument.engine_speed == %lu\n", instrument.engine_speed);
-        printf("engine_speed_level_of_lag == %u\n", (u16)engine_speed_level_of_lag);
+        // printf("instrument.engine_speed == %lu\n", instrument.engine_speed);
+        // printf("engine_speed_level_of_lag == %u\n", (u16)engine_speed_level_of_lag);
+
+        if (engine_speed_level_of_lag >= 8)
+        {
+            instrument.flag_is_engine_speed_warning_enable = 1;
+        }
+        else
+        {
+            instrument.flag_is_engine_speed_warning_enable = 0;
+            // 取消警报之后，需要立即取消显示：
+            aip3368h_display_exclamation_point(0);
+        }
+
         aip3368h_display_engine_speed_scale_bar(engine_speed_level_of_lag);
     }
 
     // USER_TO_DO 这里的闪烁需要放到错误处理函数来统一执行
-    if (aip3368h_display_exclamation_point_refresh_time_cnt >= 475)
-    {
-        aip3368h_display_exclamation_point_refresh_time_cnt = 0;
+    // if (aip3368h_display_exclamation_point_refresh_time_cnt >= 475)
+    // {
+    //     aip3368h_display_exclamation_point_refresh_time_cnt = 0;
 
-        if (engine_speed_level_of_lag >= 8)
-        {
-            // 直接操作显存，判断当前感叹号对应的指示灯是否点亮，进而让它闪烁
-            if ((aip3368h_display_buff[0] >> 1) & 0x01)
-            {
-                aip3368h_display_buff[0] &= ~(0x01 << 1);
-            }
-            else
-            {
-                aip3368h_display_buff[0] |= (0x01 << 1);
-            }
-        }
-        else
-        {
-            aip3368h_display_exclamation_point(0);
-        }
-    }
+    //     if (engine_speed_level_of_lag >= 8)
+    //     {
+    //         // 直接操作显存，判断当前感叹号对应的指示灯是否点亮，进而让它闪烁
+    //         if ((aip3368h_display_buff[0] >> 1) & 0x01)
+    //         {
+    //             aip3368h_display_buff[0] &= ~(0x01 << 1);
+    //         }
+    //         else
+    //         {
+    //             aip3368h_display_buff[0] |= (0x01 << 1);
+    //         }
+    //     }
+    //     else
+    //     {
+    //         aip3368h_display_exclamation_point(0);
+    //     }
+    // }
 }
 
 #endif // #if ENGINE_SPEED_SCAN_ENABLE
