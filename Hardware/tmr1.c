@@ -60,12 +60,7 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
         }
 
 #if FUEL_CAPACITY_SCAN_ENABLE
-        // // if (fuel_capacity_scan_cnt < 4294967295 - diff_ms_cnt) // 防止计数溢出
-        // {
-        //     fuel_capacity_scan_cnt++;
-        //     // fuel_capacity_scan_cnt += diff_ms_cnt;
-        // }
-        
+       
         fuel_capacity_scan_time_add();
 #endif
 

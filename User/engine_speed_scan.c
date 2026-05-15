@@ -209,30 +209,7 @@ void aip3368h_display_engine_speed_handle(void)
         }
 
         aip3368h_display_engine_speed_scale_bar(engine_speed_level_of_lag);
-    }
-
-    // USER_TO_DO 这里的闪烁需要放到错误处理函数来统一执行
-    // if (aip3368h_display_exclamation_point_refresh_time_cnt >= 475)
-    // {
-    //     aip3368h_display_exclamation_point_refresh_time_cnt = 0;
-
-    //     if (engine_speed_level_of_lag >= 8)
-    //     {
-    //         // 直接操作显存，判断当前感叹号对应的指示灯是否点亮，进而让它闪烁
-    //         if ((aip3368h_display_buff[0] >> 1) & 0x01)
-    //         {
-    //             aip3368h_display_buff[0] &= ~(0x01 << 1);
-    //         }
-    //         else
-    //         {
-    //             aip3368h_display_buff[0] |= (0x01 << 1);
-    //         }
-    //     }
-    //     else
-    //     {
-    //         aip3368h_display_exclamation_point(0);
-    //     }
-    // }
+    } 
 }
 
 #endif // #if ENGINE_SPEED_SCAN_ENABLE

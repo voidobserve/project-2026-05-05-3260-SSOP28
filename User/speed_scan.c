@@ -77,6 +77,10 @@ void speed_scan(void)
         */
         // u32 tmp = (cur_speed_scan_pulse * SPEED_SCAN_MM_PER_TURN / SPEED_SCAN_PULSE_PER_TURN);
         tmp = ((cur_speed_scan_pulse * SPEED_SCAN_MM_PER_TURN) / SPEED_SCAN_PULSE_PER_TURN);
+
+        // 27,638 = (脉冲个数 * 1070) / 3;
+        //             77
+
         // printf("cur_speed_scan_pulse %lu\n", cur_speed_scan_pulse);
 
         if (flag_is_speed_scan_over_time) // 超时，采集到的脉冲个数对应一直是0km/h，认为时速是0
@@ -91,7 +95,7 @@ void speed_scan(void)
                 cur_speed = 0;
             }
         }
-        else // 未超时，计算采集到的脉冲个数对应走过的距离，再转换成以km/h的单位
+        else // 未超时，计算采集到的脉冲个数对应走过的距离，再转换成以 km/h 的单位
         {
             /*
                 采集的脉冲个数对应走过的距离（单位：mm）/ 采集所用的时间（单位：ms） == 速度（单位：mm/ms）

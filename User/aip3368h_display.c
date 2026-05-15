@@ -882,6 +882,8 @@ void aip3368h_display_boot_animation_handle(void)
 
     while (aip3368h_display_obj.is_in_boot_animiation)
     {
+        WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗并清除 wdt_pending
+
         if (aip3368h_display_boot_animation_time_add_flag)
         {
             aip3368h_display_boot_animation_time_add_flag = 0;

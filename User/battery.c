@@ -29,12 +29,15 @@ void bat_adc_val_samples_update(u16 adc_val)
     {
         __bat_adv_val_samples_init__(adc_val);
         is_initiated = 1;
-        return;
+        return; // 初始化数组之后，直接退出，下一次得到新数据才执行下面的操作
     }
 
-    bat_adc_val_samples[bat_adc_val_sample_index++] = adc_val;
+    bat_adc_val_samples[bat_adc_val_sample_index] = adc_val;
+    bat_adc_val_sample_index++;
     if (bat_adc_val_sample_index >= SAMPLE_COUNT)
+    {
         bat_adc_val_sample_index = 0;
+    }
 }
 
 // 从滑动平均数组中读出数据

@@ -45,8 +45,8 @@ void adc_channel_set(adc_channel_t adc_channel)
     switch (adc_channel)
     {
 #if BATTERY_SCAN_ENABLE
-
-    case ADC_CHANNEL_BATTERY:              // 检测电池电量
+        // 检测电池电量
+    case ADC_CHANNEL_BATTERY:
         ADC_ACON1 &= ~((0x01 << 5) |       // 关闭ADC外部参考选择信号
                        (0x07 << 0));       // 清空ADC内部参考电压的选择配置
         ADC_ACON1 |= (0x01 << 6) |         // 使能ADC内部参考信号
@@ -58,17 +58,13 @@ void adc_channel_set(adc_channel_t adc_channel)
 #endif
 
 #if FUEL_CAPACITY_SCAN_ENABLE
-
-    case ADC_CHANNEL_FUEL: // 检测油量
-
-        //    ADC_ACON1 &= ~((0x01 << 6) | (0x01 << 5) | (0x07 << 0)); // 关闭ADC中内部参考能使信号，关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
-        //    ADC_ACON1 |= (0x03 << 3) | (0x06 << 0);                  // 关闭测试信号，选择内部VCCA作为参考电压（使用VCCA作为参考电压，需要关闭内部使能参考和外部使能参考）
-
-        ADC_ACON1 &= ~((0x01 << 5) |
-                       (0x07 << 0));       // 关闭ADC外部参考选择信号，清空ADC内部参考电压的选择配置
+        // 检测油量
+    case ADC_CHANNEL_FUEL:
+        ADC_ACON1 &= ~((0x01 << 5) |       // 关闭ADC外部参考选择信号
+                       (0x07 << 0));       // 清空ADC内部参考电压的选择配置
         ADC_ACON1 |= (0x01 << 6) |         // 使能ADC内部参考信号
                      (0x03 << 3) |         // 关闭测试信号
-                     (0x03 << 0);          // 内部参考电压选择3.0V
+                     (0x01 << 0);          // 内部参考电压选择 2.0 V
         ADC_CHS0 |= ADC_ANALOG_CHAN(0x01); // P01通路
         break;
 
@@ -118,7 +114,7 @@ u16 adc_getval(void)
 
     return adc_val_tmp;
 }
-#endif 
+#endif
 
 // 由定时器调用，adc通道切换
 void adc_channel_switch_by_isr(void)
@@ -169,7 +165,7 @@ void ADC_IRQHandler(void) interrupt ADC_IRQn
             break;
 
         case ADC_CHANNEL_STATUS_SEL_FUEL_END:
-            adc_update_fuel_val(adc_val);
+            fuel_capacity_adc_val_samples_update(adc_val);
             break;
         }
     }

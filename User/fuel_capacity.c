@@ -2,11 +2,57 @@
 
 #if FUEL_CAPACITY_SCAN_ENABLE
 
-static volatile u16 adc_val_of_fuel = 0;
+// static volatile u16 adc_val_of_fuel = 0;
 
 // volatile u32 fuel_capacity_scan_cnt = 0; // 扫描时间计数，在1ms定时器中断中累加
 
 static volatile u16 fuel_capacity_scan_time_cnt = 0;
+
+// 滑动平均：
+#define SAMPLE_COUNT 20 // 样本计数
+static volatile u16 fuel_capacity_adc_val_samples[SAMPLE_COUNT] = {0};
+static volatile u8 fuel_capacity_adc_val_sample_index = 0;
+
+static void __fuel_capacity_adc_val_samples_init__(u16 adc_val)
+{
+    u8 i;
+    for (i = 0; i < SAMPLE_COUNT; i++)
+    {
+        fuel_capacity_adc_val_samples[i] = adc_val;
+    }
+}
+
+// 将数据放入油量检测的滑动平均数组
+void fuel_capacity_adc_val_samples_update(u16 adc_val)
+{
+    static u8 is_initiated = 0;
+    if (0 == is_initiated)
+    {
+        is_initiated = 1;
+        __fuel_capacity_adc_val_samples_init__(adc_val);
+        return; // 初始化数组之后，直接退出，下一次得到新数据才执行下面的操作
+    }
+
+    fuel_capacity_adc_val_samples[fuel_capacity_adc_val_sample_index] = adc_val;
+    fuel_capacity_adc_val_sample_index++;
+    if (fuel_capacity_adc_val_sample_index >= SAMPLE_COUNT)
+    {
+        fuel_capacity_adc_val_sample_index = 0;
+    }
+}
+
+// 从油量检测的滑动平均数组中获取数据
+u16 fuel_capacity_adc_val_get(void)
+{
+    u8 i;
+    u32 sum = 0;
+    for (i = 0; i < SAMPLE_COUNT; i++)
+    {
+        sum += fuel_capacity_adc_val_samples[i];
+    }
+
+    return (sum / SAMPLE_COUNT);
+}
 
 void fuel_capacity_scan_time_add(void)
 {
@@ -16,202 +62,28 @@ void fuel_capacity_scan_time_add(void)
     }
 }
 
-// USER_TO_DO adc值改成由中断更新
-void adc_update_fuel_val(u16 adc_val)
+void fuel_capacity_scan(void)
 {
-    adc_val_of_fuel = adc_val;
-}
+    u16 fuel_adc_val;
+    u16 fuel_voltage;
 
-// 滑动平均：
-#define SAMPLE_COUNT 20 // 样本计数
-static volatile u16 samples[SAMPLE_COUNT] = {0};
-static volatile u8 sample_index = 0;
-u16 get_filtered_adc(u16 adc_val)
-{
-    u8 i = 0;
-    u32 sum = 0;
-    samples[sample_index++] = adc_val;
-    if (sample_index >= SAMPLE_COUNT)
-        sample_index = 0;
+    static u8 is_initiated = 0; // 初始化
+    static u8 fuel_lev_of_lag = 0;
+    u8 cur_fuel_lev = 0;
 
-    for (i = 0; i < SAMPLE_COUNT; i++)
-        sum += samples[i];
-
-    return sum / SAMPLE_COUNT;
-}
-
-// 给滑动平均使用到的数组进行初始化
-void samples_init(u16 adc_val)
-{
-    u8 i = 0;
-    for (; i < SAMPLE_COUNT; i++)
+    if (fuel_capacity_scan_time_cnt >= 200)
     {
-        samples[i] = adc_val;
-    }
-}
-
-// 将油量检测对应的ad值转换成百分比值
-u8 convert_fuel_adc_to_percent(u16 fuel_adc_val)
-{
-    u8 ret = 0;
-
-    // // 如果超出了 最大油量的ad值和最小油量的ad值之间的范围 ，说明没有接油量检测
-    // if (fuel_adc_val >= (4095 - 500) ||
-    //     fuel_adc_val <= (0 + 500))
-    // {
-    //     ret = 0xFF; // 根据串口收发协议，0xFF对应没有接油量检测
-    // }
-
-    // 使用3V参考电压：
-    if (fuel_adc_val >= (u16)((u32)2207 * 4096 / 3 / 1000) ||
-        fuel_adc_val <= (u16)((u32)250 * 4096 / 3 / 1000))
-    {
-        ret = 0xFF; // 根据客户的修改需求，单片机检测到电压大于 2.207 V或者小于 0.25V ,认为是没有接油量，小于 2.207 V，认为接油量检测正常
+        fuel_capacity_scan_time_cnt = 0;
     }
     else
     {
-        if (fuel_adc_val > FUEL_LEVEL_0_ADC_VAL) // 如果检测到的ad值比最小油量对应的ad值还要大
-        {
-            ret = 0; // 0% 油量
-        }
-        else if (fuel_adc_val <= FUEL_LEVEL_6_ADC_VAL) // 如果检测到的油量比100%还要大一些
-        {
-            ret = 100;
-        }
-        else if (fuel_adc_val <= FUEL_LEVEL_0_ADC_VAL && fuel_adc_val > FUEL_LEVEL_1_ADC_VAL) /* 0格油量到1格油量，0% ~ 18% */
-        {
-            /*
-                用采集到的ad值减去当前挡位最小的ad值，再除以（当前挡位最大的ad值-当前挡位最小的ad值），得到
-                采集到的ad值对应当前挡位的占比，再乘以当前挡位对应的百分比
-            */
-            ret = ((u32)fuel_adc_val - FUEL_LEVEL_1_ADC_VAL) * 18 / ((u32)FUEL_LEVEL_0_ADC_VAL - FUEL_LEVEL_1_ADC_VAL);
-            ret = 18 - ret;
-        }
-        else if (fuel_adc_val <= FUEL_LEVEL_1_ADC_VAL && fuel_adc_val > FUEL_LEVEL_2_ADC_VAL) /* 1格油量到2格油量，18% ~ 34% */
-        {
-            ret = ((u32)fuel_adc_val - FUEL_LEVEL_2_ADC_VAL) * 34 / ((u32)FUEL_LEVEL_1_ADC_VAL - FUEL_LEVEL_2_ADC_VAL);
-            ret = 34 - ret;
-            if (ret < 18)
-            {
-                ret = 18;
-            }
-        }
-        else if (fuel_adc_val <= FUEL_LEVEL_2_ADC_VAL && fuel_adc_val > FUEL_LEVEL_3_ADC_VAL) /* 2格油量到3格油量，34% ~ 51% */
-        {
-            ret = ((u32)fuel_adc_val - FUEL_LEVEL_3_ADC_VAL) * 51 / ((u32)FUEL_LEVEL_2_ADC_VAL - FUEL_LEVEL_3_ADC_VAL);
-            ret = 51 - ret;
-            if (ret < 34)
-            {
-                ret = 34;
-            }
-        }
-        else if (fuel_adc_val <= FUEL_LEVEL_3_ADC_VAL && fuel_adc_val > FUEL_LEVEL_4_ADC_VAL) /* 3格油量到4格油量，51% ~ 68% */
-        {
-            ret = ((u32)fuel_adc_val - FUEL_LEVEL_4_ADC_VAL) * 68 / ((u32)FUEL_LEVEL_3_ADC_VAL - FUEL_LEVEL_4_ADC_VAL);
-            ret = 68 - ret;
-            if (ret < 51)
-            {
-                ret = 51;
-            }
-        }
-        else if (fuel_adc_val <= FUEL_LEVEL_4_ADC_VAL && fuel_adc_val > FUEL_LEVEL_5_ADC_VAL) /* 4格油量到5格油量，68% ~ 84% */
-        {
-            ret = ((u32)fuel_adc_val - FUEL_LEVEL_5_ADC_VAL) * 84 / ((u32)FUEL_LEVEL_4_ADC_VAL - FUEL_LEVEL_5_ADC_VAL);
-            ret = 84 - ret;
-            if (ret < 68)
-            {
-                ret = 68;
-            }
-        }
-        else if (fuel_adc_val <= FUEL_LEVEL_5_ADC_VAL && fuel_adc_val > FUEL_LEVEL_6_ADC_VAL) /* 5格油量到6格油量，84% ~ 100.0% */
-        {
-            ret = ((u32)fuel_adc_val - FUEL_LEVEL_6_ADC_VAL) * 100 / ((u32)FUEL_LEVEL_5_ADC_VAL - FUEL_LEVEL_6_ADC_VAL);
-            ret = 100 - ret;
-            if (ret < 84)
-            {
-                ret = 84;
-            }
-        }
+        return;
     }
 
-    // 0，显示0格，游标闪烁
-    // 18以下，不含18，显示1格
-    // ret = 18; // 18及以上，显示2格
-    // ret = 34; // 34及以上，显示3格
-    // ret = 51; // 51及以上，显示4格
-    // ret = 68; // 68及以上，显示5格
-    // ret = 84; // 84及以上，显示6格
-    return ret;
-}
-
-enum
-{
-    STATUS_JUST_POWER_ON = 0, // 刚上电
-    STATUS_IN_SERVICE,        // 运行中
-};
-
-void fuel_capacity_scan(void)
-{
-#if 0
-    u8 fuel_percent = 0;
-    u16 fuel_adc_val = 0;
-
-    // adc_sel_pin(ADC_PIN_FUEL); // 内部至少占用1ms
-    // adc_val = adc_getval();    //
-    fuel_adc_val = get_filtered_adc(adc_val);
-    // printf("fuel_adc_val: %u\n", fuel_adc_val);
-
-    // if (fuel_adc_val <= 4294967295 - 4095) // 防止计数溢出
-    // {
-    //     fuel_adc_val += adc_val;
-    //     fuel_adc_scan_cnt++;
-    // }
-
-    /*
-        刚上电直接获取一次，作为油量的状态
-    */
-    {
-        static u8 status = STATUS_JUST_POWER_ON;
-        if (STATUS_JUST_POWER_ON == status) // 如果是第一次上电
-        {
-            if (fuel_capacity_scan_cnt >= FUEL_UPDATE_TIME_WHEN_POWER_ON)
-            {
-                fuel_capacity_scan_cnt = 0;
-                // fuel_adc_val /= fuel_adc_scan_cnt; // 求出扫描时间内得到的ad平均值
-                // adc_val = adc_getval(); //
-                samples_init(adc_val);
-                fuel_adc_val = adc_val;
-
-                fuel_percent = convert_fuel_adc_to_percent(fuel_adc_val);
-
-                // printf("power on, fuel_percent:%bu\n", fuel_percent);
-                instrument.fuel = fuel_percent;
-                // fuel_adc_scan_cnt = 0;
-                fuel_adc_val = 0;
-                // flag_get_fuel = 1;
-
-                status = STATUS_IN_SERVICE;
-            }
-        }
-    }
-
-    if (fuel_capacity_scan_cnt >= FUEL_UPDATE_TIME)
-    {
-        // 如果到了扫描更新时间
-        fuel_capacity_scan_cnt = 0;
-        // fuel_adc_val /= fuel_adc_scan_cnt; // 求出扫描时间内得到的ad平均值
-        // fuel_percent = convert_fuel_adc_to_percent(fuel_adc_val);
-
-        fuel_percent = convert_fuel_adc_to_percent(fuel_adc_val);
-
-        // printf("fuel_percent:%bu\n", fuel_percent);
-        instrument.fuel = fuel_percent;
-        // fuel_adc_scan_cnt = 0;
-        fuel_adc_val = 0;
-        // flag_get_fuel = 1;
-    }
-
-#endif
+    fuel_adc_val = fuel_capacity_adc_val_get();
+    fuel_voltage = (u32)fuel_adc_val * 2000 / 4096; //
+    printf("fuel_adc_val == %u\n", fuel_adc_val);
+    printf("fuel_voltage == %u\n", fuel_voltage);
 }
 
 #endif
