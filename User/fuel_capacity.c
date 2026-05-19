@@ -106,7 +106,7 @@ u16 __fuel_voltage_samples_get__(void)
 // 电压值越大，油量越小
 u8 fuel_capacity_convert_voltage_to_lev(u16 voltage)
 {
-    u8 ret;
+    u8 ret = 0; // 默认油量为0
     if (voltage >= FUEL_LEVEL_0_VOLTAGE)
     {
         ret = 0;
@@ -127,7 +127,11 @@ u8 fuel_capacity_convert_voltage_to_lev(u16 voltage)
     {
         ret = 4;
     }
-    else if (voltage >= FUEL_LEVEL_5_VOLTAGE)
+    // else if (voltage >= FUEL_LEVEL_5_VOLTAGE)
+    // {
+    //     ret = 5;
+    // }
+    else
     {
         ret = 5;
     }
