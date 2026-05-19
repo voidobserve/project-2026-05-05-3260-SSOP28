@@ -965,6 +965,21 @@ void aip3368h_display_err_handle(void)
             aip3368h_display_buff[2] |= 0x01 << 11; // 电池电量低，第 0 格指示灯（红）
         }
     }
+
+    // 低油量 报警
+    if (instrument.flag_is_in_warning_of_low_fuel)
+    {
+        // 直接操作显存，判断当前感叹号对应的指示灯是否点亮，进而让它闪烁
+
+        if ((aip3368h_display_buff[2] >> 15) & 0x01)
+        {
+            aip3368h_display_buff[2] &= ~(0x01 << 15); // 油量，第 0 格指示灯（红）
+        }
+        else
+        {
+            aip3368h_display_buff[2] |= (0x01 << 15); // 油量，第 0 格指示灯（红）
+        }
+    }
 }
 
 #if AIP3368H_DISPLAY_TEST_ENABLE

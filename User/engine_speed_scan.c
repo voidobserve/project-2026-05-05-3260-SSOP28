@@ -167,12 +167,12 @@ void aip3368h_display_engine_speed_handle(void)
 {
     // 延迟显示的发动机转速
     static u8 engine_speed_level_of_lag = 0;
-    static u8 is_initiated = 0;
+    static u8 is_initialized = 0;
     u8 cur_engine_speed_level = 0;
 
-    if (is_initiated == 0)
+    if (is_initialized == 0)
     {
-        is_initiated = 1;
+        is_initialized = 1;
 
         engine_speed_level_of_lag = engine_speed_get_level();
     }

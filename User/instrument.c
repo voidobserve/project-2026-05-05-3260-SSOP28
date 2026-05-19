@@ -1,6 +1,5 @@
 #include "instrument.h"
 #include <string.h> // memset()
- 
 
 volatile instrument_t instrument = {0};
 
@@ -16,10 +15,15 @@ void instrument_info_init(void)
         // 如果保存在flash中的数据有效
         instrument.save_info.total_mileage = save_info.total_mileage;
         instrument.save_info.subtotal_mileage = save_info.subtotal_mileage;
+        instrument.save_info.is_display_total_mileage = save_info.is_display_total_mileage;
     }
     else
     {
         // 如果保存在flash中的数据无效，全局变量 instrument 中的元素 默认全部为0
+
+        instrument.save_info.is_display_total_mileage = 1; // 默认显示大计里程
+        instrument.save_info.is_save_data_valid = USER_FLASH_DATA_VALID_VAL;
+        instrument_info_save(); // 将数据写回flash
     }
 }
 

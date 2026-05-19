@@ -1,6 +1,6 @@
 #include "key_driver.h"
 
-#if (TOUCH_KEY_ENABLE || AD_KEY_ENABLE)
+#if (TOUCH_KEY_ENABLE || AD_KEY_ENABLE || IO_KEY_ENABLE)
 
 enum
 {

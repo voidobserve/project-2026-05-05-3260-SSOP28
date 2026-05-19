@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   ADC                                                               05/15/2026 16:49:33 PAGE 1   
+C51 COMPILER V9.60.7.0   ADC                                                               05/18/2026 16:03:21 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE ADC
@@ -11,7 +11,7 @@ line level    source
 
    1          #include "adc.h"
    2          
-   3          #if (BATTERY_SCAN_ENABLE || AD_KEY_ENABLE || FUEL_CAPACITY_SCAN_ENABLE || TEMP_OF_WATER_SCAN_ENABLE)
+   3          #if (BATTERY_SCAN_ENABLE || FUEL_CAPACITY_SCAN_ENABLE)
    4          
    5          volatile u16 adc_val; // adc值，0~4095
    6          // 控制切换adc通道的状态机：
@@ -62,7 +62,7 @@ line level    source
   51   2                             (0x07 << 0));       // 清空ADC内部参考电压的选择配置
   52   2              ADC_ACON1 |= (0x01 << 6) |         // 使能ADC内部参考信号
   53   2                           (0x03 << 3) |         // 关闭测试信号
-C51 COMPILER V9.60.7.0   ADC                                                               05/15/2026 16:49:33 PAGE 2   
+C51 COMPILER V9.60.7.0   ADC                                                               05/18/2026 16:03:21 PAGE 2   
 
   54   2                           (0x01 << 0);          // 内部参考电压选择 2.0 V
   55   2              ADC_CHS0 |= ADC_ANALOG_CHAN(0x04); // P04通路
@@ -126,7 +126,7 @@ line level    source
                   adc_val_tmp = (adc_val_sum >> 4); // 除以16，取平均值
               
                   return adc_val_tmp;
-C51 COMPILER V9.60.7.0   ADC                                                               05/15/2026 16:49:33 PAGE 3   
+C51 COMPILER V9.60.7.0   ADC                                                               05/18/2026 16:03:21 PAGE 3   
 
               }
               #endif
@@ -190,7 +190,7 @@ line level    source
  175   1      }
  176          
  177          #endif
-C51 COMPILER V9.60.7.0   ADC                                                               05/15/2026 16:49:33 PAGE 4   
+C51 COMPILER V9.60.7.0   ADC                                                               05/18/2026 16:03:21 PAGE 4   
 
 
 

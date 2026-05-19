@@ -24,11 +24,11 @@ static void __bat_adv_val_samples_init__(u16 adc_val)
 // 将数据放入滑动平均数组
 void bat_adc_val_samples_update(u16 adc_val)
 {
-    static u8 is_initiated = 0;
-    if (0 == is_initiated)
+    static u8 is_initialized = 0;
+    if (0 == is_initialized)
     {
         __bat_adv_val_samples_init__(adc_val);
-        is_initiated = 1;
+        is_initialized = 1;
         return; // 初始化数组之后，直接退出，下一次得到新数据才执行下面的操作
     }
 

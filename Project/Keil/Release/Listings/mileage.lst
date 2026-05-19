@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   MILEAGE                                                           05/15/2026 16:49:34 PAGE 1   
+C51 COMPILER V9.60.7.0   MILEAGE                                                           05/18/2026 16:03:22 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MILEAGE
@@ -24,19 +24,18 @@ line level    source
   10          // 总里程扫描
   11          void mileage_scan(void)
   12          {
-  13   1          // 下面这组变量用来控制每走过一段距离时，发送里程数据
-  14   1          static u32 old_total_mileage;    // 用来记录旧的大计里程的变量
-  15   1          static u32 old_subtotal_mileage; // 用来记录旧的小计里程的变量
-  16   1      
-  17   1          /*
-  18   1              是否有里程数据需要保存的标志变量，0--没有里程变化，不需要保存，1--�
-             -�里程变化，需要保存
+  13   1          static u8 is_initialized = 0;
+  14   1      
+  15   1          /*
+  16   1              是否有里程数据需要保存的标志变量，
+  17   1              0--没有里程变化，不需要保存，
+  18   1              1--有里程变化，需要保存
   19   1              目前每过1m就会置位一次，保存之后清零
   20   1          */
   21   1          static volatile bit flag_is_any_mileage_save;
   22   1      
   23   1          // 每隔一段时间，交替发送大计里程和小计里程，用该变量来控制交替
-  24   1          static volatile bit is_send_total_mileage = 0; // 是否发送大计里程
+  24   1          // static volatile bit is_send_total_mileage = 0; // 是否发送大计里程
   25   1      
   26   1          // 每过1s，且里程有变化，就保存一次；这个里程变化的条件最好大于10m，否�
              -��会经常写入eeprom
@@ -62,10 +61,10 @@ line level    source
   46   2              {
   47   3                  instrument.save_info.total_mileage++; // +1m
   48   3              }
-C51 COMPILER V9.60.7.0   MILEAGE                                                           05/15/2026 16:49:34 PAGE 2   
-
   49   2      
-  50   2              if (instrument.save_info.subtotal_mileage < (u32)(9999999)) // 9999.9KM， 9999 999 m
+C51 COMPILER V9.60.7.0   MILEAGE                                                           05/18/2026 16:03:22 PAGE 2   
+
+  50   2              if (instrument.save_info.subtotal_mileage < (u32)(999999 * 100)) // 99999.9 KM
   51   2              {
   52   3                  instrument.save_info.subtotal_mileage++; // +1m
   53   3              }
@@ -83,63 +82,65 @@ line level    source
   65   3              }
   66   2          }
   67   1      
-  68   1          // 如果大计里程有变化且超过了100m(不能满1000m再发送，在显示上，会先更新�
+  68   1      #if 0
+                  // 如果大计里程有变化且超过了100m(不能满1000m再发送，在显示上，会先更新�
              -�计里程，过几百ms才更新小计里程)
-  69   1          if ((instrument.save_info.total_mileage - old_total_mileage) > 100)
-  70   1          {
-  71   2              old_total_mileage = instrument.save_info.total_mileage; // 记录旧的里程
-  72   2      
-  73   2              // printf("total mileage: %lu m\n", instrument.save_info.total_mileage);
-  74   2      
-  75   2              // 发送数据的操作，可以先置标志位
-  76   2              // flag_get_total_mileage = 1;
-  77   2          }
-  78   1      
-  79   1          // 如果小计里程有变化且超过了100m
-  80   1          if ((instrument.save_info.subtotal_mileage - old_subtotal_mileage) > 100)
-  81   1          {
-  82   2              old_subtotal_mileage = instrument.save_info.subtotal_mileage; // 记录旧的里程
-  83   2      
-  84   2              // printf("subtotal mileage: %lu m\n", instrument.save_info.subtotal_mileage);
-  85   2      
-  86   2              // 发送数据的操作，可以先置标志位
-  87   2              // flag_get_sub_total_mileage = 1;
-  88   2          }
-  89   1      
-  90   1          if (mileage_update_time_cnt >= MILEAGE_UPDATE_TIME_MS)
-  91   1          {
-  92   2              // 每隔一段时间，发送大小里程，
-  93   2              // 因为最后大计里程在999999km,小计里程在999.9km之后，就不更新了，
-  94   2              // 要在刷新一次，才会发送1000000km和1000.0km的大小里程
-  95   2              mileage_update_time_cnt = 0;
-  96   2      
-  97   2              if (0 == is_send_total_mileage)
-  98   2              {
-  99   3      
- 100   3                  // flag_get_sub_total_mileage = 1;
- 101   3              }
- 102   2              else
+                  if ((instrument.save_info.is_display_total_mileage == 1) && // 当前要显示的是大计里程
+                      (instrument.save_info.total_mileage - old_total_mileage) > 100)
+                  {
+                      old_total_mileage = instrument.save_info.total_mileage; // 记录旧的里程
+              
+                      // printf("total mileage: %lu m\n", instrument.save_info.total_mileage);
+              
+                      // 发送数据的操作，可以先置标志位
+                      // flag_get_total_mileage = 1;
+                  }
+              
+                  // 如果小计里程有变化且超过了100m
+                  if ((instrument.save_info.is_display_total_mileage == 0) && // 当前要显示的是小计里程
+                      (instrument.save_info.subtotal_mileage - old_subtotal_mileage) > 100)
+                  {
+                      old_subtotal_mileage = instrument.save_info.subtotal_mileage; // 记录旧的里程
+              
+                      // printf("subtotal mileage: %lu m\n", instrument.save_info.subtotal_mileage);
+              
+                      // 发送数据的操作，可以先置标志位
+                      // flag_get_sub_total_mileage = 1;
+                  }
+              #endif
+  93   1      
+  94   1          if (0 == is_initialized || mileage_update_time_cnt >= MILEAGE_UPDATE_TIME_MS)
+  95   1          {
+  96   2              // 每隔一段时间，发送大小里程，
+  97   2              // 因为最后大计里程在999999km,小计里程在999.9km之后，就不更新了，
+  98   2              // 要再刷新一次，才会发送1000000km和1000.0km的大小里程
+  99   2              mileage_update_time_cnt = 0;
+ 100   2              is_initialized = 1;
+ 101   2      
+ 102   2              if (instrument.save_info.is_display_total_mileage)
  103   2              {
- 104   3                  // flag_get_total_mileage = 1; //
- 105   3              }
- 106   2      
- 107   2              is_send_total_mileage = !is_send_total_mileage;
- 108   2      
- 109   2              // flag_get_sub_total_mileage_2 = 1;
-C51 COMPILER V9.60.7.0   MILEAGE                                                           05/15/2026 16:49:34 PAGE 3   
+ 104   3                  aip3368h_display_mileage(
+ 105   3                      instrument.save_info.total_mileage / 1000, 1);
+ 106   3              }
+ 107   2              else
+ 108   2              {
+ 109   3                  aip3368h_display_mileage(
+ 110   3                      instrument.save_info.subtotal_mileage / 100, 0);
+C51 COMPILER V9.60.7.0   MILEAGE                                                           05/18/2026 16:03:22 PAGE 3   
 
- 110   2          }
- 111   1      }
+ 111   3              }
+ 112   2          }
+ 113   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    260    ----
+   CODE SIZE        =    256    ----
    CONSTANT SIZE    =   ----    ----
-   XDATA SIZE       =     17    ----
+   XDATA SIZE       =     10    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----
-   BIT SIZE         =      2    ----
+   BIT SIZE         =      1    ----
 END OF MODULE INFORMATION.
 
 

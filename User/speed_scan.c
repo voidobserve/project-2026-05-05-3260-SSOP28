@@ -133,9 +133,6 @@ void speed_scan(void)
     }
 }
 
-
- 
-
 void aip3368h_display_speed_refresh_time_add(void)
 {
     if (aip3368h_display_speed_refresh_time_cnt < ((u8)-1)) // 防止计数溢出
@@ -146,12 +143,12 @@ void aip3368h_display_speed_refresh_time_add(void)
 
 void aip3368h_display_speed_handle(void)
 {
-    static u8 is_initiated = 0; // 是否初始化
-    static u8 speed_of_lag = 0; // 延迟显示的时速
+    static u8 is_initialized = 0; // 是否初始化
+    static u8 speed_of_lag = 0;   // 延迟显示的时速
 
-    if (0 == is_initiated)
+    if (0 == is_initialized)
     {
-        is_initiated = 1;
+        is_initialized = 1;
 
         speed_of_lag = instrument.speed; // 初始化，直接获取当前最新的速度值
         aip3368h_display_speed(speed_of_lag);
@@ -163,14 +160,25 @@ void aip3368h_display_speed_handle(void)
 
         if (speed_of_lag > instrument.speed)
         {
-            if (speed_of_lag > 0)
+            if (speed_of_lag - instrument.speed >= 10)
+            {
+                speed_of_lag -= 10;
+            }
+            else
             {
                 speed_of_lag--;
             }
         }
         else if (speed_of_lag < instrument.speed)
         {
-            speed_of_lag++;
+            if (instrument.speed - speed_of_lag >= 10)
+            {
+                speed_of_lag += 10;
+            }
+            else
+            {
+                speed_of_lag++;
+            }
         }
 
         aip3368h_display_speed(speed_of_lag);

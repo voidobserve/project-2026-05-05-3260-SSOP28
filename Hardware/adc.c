@@ -1,6 +1,6 @@
 #include "adc.h"
 
-#if (BATTERY_SCAN_ENABLE || AD_KEY_ENABLE || FUEL_CAPACITY_SCAN_ENABLE || TEMP_OF_WATER_SCAN_ENABLE)
+#if (BATTERY_SCAN_ENABLE || FUEL_CAPACITY_SCAN_ENABLE)
 
 volatile u16 adc_val; // adc值，0~4095
 // 控制切换adc通道的状态机：

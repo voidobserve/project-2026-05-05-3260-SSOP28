@@ -59,9 +59,14 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
             // mileage_save_time_cnt += diff_ms_cnt;
         }
 
+        if (io_key_para.cur_scan_times < 255)
+        {
+            io_key_para.cur_scan_times++;
+        }
+
 #if FUEL_CAPACITY_SCAN_ENABLE
-       
         fuel_capacity_scan_time_add();
+        fuel_lev_update_time_add();
 #endif
 
         // if (mileage_update_time_cnt < 65535)
@@ -75,7 +80,6 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
 
         adc_channel_switch_by_isr();
 
-
         aip3368h_refresh_time_add();
         aip3368h_display_speed_refresh_time_add();
         aip3368h_display_engine_speed_refresh_time_add();
@@ -83,15 +87,13 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
 
         // USER_TO_DO 应该把修改显存的操作放到主循环，这里仅用作计时
         aip3368h_display_boot_animation_time_add();
-    
+
         // USER_TO_DO 只在测试时只用：
         // aip3368h_display_test_engine_speed_scale_bar_1ms_isr();
         // aip3368h_display_test_fuel_level_1ms_isr();
         // aip3368h_display_test_mileage_1ms_isr();
         // aip3368h_display_test_speed_1ms_isr();
         // aip3368h_display_test_speed_scale_bar_1ms_isr();
-
-    
     }
 
     // P20 = 0;// 测试中断持续时间

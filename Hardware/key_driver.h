@@ -1,9 +1,9 @@
-#ifndef __KEY_DRIVER_H
-#define __KEY_DRIVER_H
+#ifndef __KEY_DRIVER_H__
+#define __KEY_DRIVER_H__
 
 #include "my_config.h"
 
-#if (TOUCH_KEY_ENABLE || AD_KEY_ENABLE)
+#if (IO_KEY_ENABLE)
 
 #define NO_KEY (255) // 无效按键的键值
 

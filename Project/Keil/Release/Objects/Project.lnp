@@ -14,12 +14,11 @@
 ".\Release\Objects\speed_scan.obj",
 ".\Release\Objects\engine_speed_scan.obj",
 ".\Release\Objects\mileage.obj",
-".\Release\Objects\ad_key.obj",
 ".\Release\Objects\fuel_capacity.obj",
 ".\Release\Objects\battery.obj",
-".\Release\Objects\touch_key.obj",
 ".\Release\Objects\instrument.obj",
-".\Release\Objects\aip3368h_display.obj" 
+".\Release\Objects\aip3368h_display.obj",
+".\Release\Objects\io_key.obj" 
 TO ".\Release\Objects\Project" 
 PRINT(".\Release\Listings\Project.m51") RAMSIZE(256) 
 CODE( 0X0000-0X3EEF )

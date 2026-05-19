@@ -42,6 +42,10 @@ void user_init(void)
     pin_level_scan_config();
 #endif
 
+#if IO_KEY_ENABLE
+    io_key_config(); // 按键的配置
+#endif
+
 #if SPEED_SCAN_ENABLE
     speed_scan_config(); // 时速扫描的配置
 #endif
@@ -50,12 +54,8 @@ void user_init(void)
     engine_speed_scan_config(); // 发动机转速扫描的配置
 #endif
 
-#if (BATTERY_SCAN_ENABLE || AD_KEY_ENABLE || FUEL_CAPACITY_SCAN_ENABLE || TEMP_OF_WATER_SCAN_ENABLE)
+#if (BATTERY_SCAN_ENABLE || FUEL_CAPACITY_SCAN_ENABLE)
     adc_config();
-#endif
-
-#if TOUCH_KEY_ENABLE
-    tk_param_init(); // 触摸按键模块初始化
 #endif
 
     instrument_info_init(); // 初始化仪表信息
@@ -84,7 +84,14 @@ void main(void)
     user_init();
 
     // 上电之后，需要先跑一遍开机动画，再继续主循环
-    // aip3368h_display_boot_animation_handle();
+    aip3368h_display_boot_animation_handle();
+
+    // USER_TO_DO 测试时使用:
+    // instrument.save_info.total_mileage = (u32)999999000;
+    // instrument.save_info.is_display_total_mileage = 1;
+
+    // instrument.save_info.subtotal_mileage = (u32)12345600;
+    // instrument.save_info.is_display_total_mileage = 0;
 
     /* 系统主循环 */
     while (1)
@@ -99,17 +106,17 @@ void main(void)
         pin_level_scan();
 #endif
 
-#if AD_KEY_ENABLE
-        key_driver_scan(&ad_key_para);
-        ad_key_handle(); // ad按键处理函数
+#if IO_KEY_ENABLE
+        key_driver_scan(&io_key_para);
+        io_key_handle(); // io按键处理函数
 #endif
 
 #if SPEED_SCAN_ENABLE
-        // speed_scan(); // 检测时速
-        // aip3368h_display_speed_handle();
+        speed_scan(); // 检测时速
+        aip3368h_display_speed_handle();
 #endif
 
-        // mileage_scan(); // 检测大计里程和小计里程
+        mileage_scan(); // 检测大计里程和小计里程
 
 #if ENGINE_SPEED_SCAN_ENABLE
         engine_speed_scan(); // 检测发动机转速

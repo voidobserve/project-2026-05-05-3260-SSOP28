@@ -26,7 +26,7 @@
 
 
 // 更新时速显示的时间周期，单位：ms
-#define AIP3368H_DISPLAY_SPEED_REFRESH_TIME (50)
+#define AIP3368H_DISPLAY_SPEED_REFRESH_TIME (75)
 
 void speed_scan_timer_50us_isr(void);
 

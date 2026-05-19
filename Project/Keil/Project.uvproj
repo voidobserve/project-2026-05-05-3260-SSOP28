@@ -477,11 +477,6 @@
               <FilePath>..\..\User\mileage.c</FilePath>
             </File>
             <File>
-              <FileName>ad_key.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\ad_key.c</FilePath>
-            </File>
-            <File>
               <FileName>fuel_capacity.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\fuel_capacity.c</FilePath>
@@ -492,11 +487,6 @@
               <FilePath>..\..\User\battery.c</FilePath>
             </File>
             <File>
-              <FileName>touch_key.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\touch_key.c</FilePath>
-            </File>
-            <File>
               <FileName>instrument.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\instrument.c</FilePath>
@@ -505,6 +495,11 @@
               <FileName>aip3368h_display.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\aip3368h_display.c</FilePath>
+            </File>
+            <File>
+              <FileName>io_key.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\io_key.c</FilePath>
             </File>
           </Files>
         </Group>

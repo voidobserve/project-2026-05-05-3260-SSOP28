@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/15/2026 16:49:34 PAGE 1   
+C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/18/2026 16:07:29 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE SPEED_SCAN
@@ -62,7 +62,7 @@ line level    source
   49   1      
   50   1          if (SPEED_SCAN_PIN) // 检测时速的引脚
   51   1          {
-C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/15/2026 16:49:34 PAGE 2   
+C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/18/2026 16:07:29 PAGE 2   
 
   52   2              if (0 == last_speed_scan_level)
   53   2              {
@@ -126,7 +126,7 @@ line level    source
  106   3      
  107   3                      1m/s == 3.6km/h，那么根据得到的 以 m/s 为单位的速度，先乘以36再除以1
              -0，得到以km/h为单位的速度值
-C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/15/2026 16:49:34 PAGE 3   
+C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/18/2026 16:07:29 PAGE 3   
 
  108   3      
  109   3                      cur_speed == 采集的脉冲个数对应走过的距离（单位：mm）/ 采集所用的�
@@ -158,57 +158,65 @@ line level    source
  133   2          }
  134   1      }
  135          
- 136          
- 137           
- 138          
- 139          void aip3368h_display_speed_refresh_time_add(void)
- 140          {
- 141   1          if (aip3368h_display_speed_refresh_time_cnt < ((u8)-1)) // 防止计数溢出
- 142   1          {
- 143   2              aip3368h_display_speed_refresh_time_cnt++;
- 144   2          }
- 145   1      }
- 146          
- 147          void aip3368h_display_speed_handle(void)
- 148          {
- 149   1          static u8 is_initiated = 0; // 是否初始化
- 150   1          static u8 speed_of_lag = 0; // 延迟显示的时速
- 151   1      
- 152   1          if (0 == is_initiated)
- 153   1          {
- 154   2              is_initiated = 1;
- 155   2      
- 156   2              speed_of_lag = instrument.speed; // 初始化，直接获取当前最新的速度值
- 157   2              aip3368h_display_speed(speed_of_lag);
- 158   2          }
- 159   1      
- 160   1          if (aip3368h_display_speed_refresh_time_cnt >= AIP3368H_DISPLAY_SPEED_REFRESH_TIME)
- 161   1          {
- 162   2              aip3368h_display_speed_refresh_time_cnt = 0;
- 163   2      
- 164   2              if (speed_of_lag > instrument.speed)
- 165   2              {
- 166   3                  if (speed_of_lag > 0)
- 167   3                  {
-C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/15/2026 16:49:34 PAGE 4   
+ 136          void aip3368h_display_speed_refresh_time_add(void)
+ 137          {
+ 138   1          if (aip3368h_display_speed_refresh_time_cnt < ((u8)-1)) // 防止计数溢出
+ 139   1          {
+ 140   2              aip3368h_display_speed_refresh_time_cnt++;
+ 141   2          }
+ 142   1      }
+ 143          
+ 144          void aip3368h_display_speed_handle(void)
+ 145          {
+ 146   1          static u8 is_initialized = 0; // 是否初始化
+ 147   1          static u8 speed_of_lag = 0;   // 延迟显示的时速
+ 148   1      
+ 149   1          if (0 == is_initialized)
+ 150   1          {
+ 151   2              is_initialized = 1;
+ 152   2      
+ 153   2              speed_of_lag = instrument.speed; // 初始化，直接获取当前最新的速度值
+ 154   2              aip3368h_display_speed(speed_of_lag);
+ 155   2          }
+ 156   1      
+ 157   1          if (aip3368h_display_speed_refresh_time_cnt >= AIP3368H_DISPLAY_SPEED_REFRESH_TIME)
+ 158   1          {
+ 159   2              aip3368h_display_speed_refresh_time_cnt = 0;
+ 160   2      
+ 161   2              if (speed_of_lag > instrument.speed)
+ 162   2              {
+ 163   3                  if (speed_of_lag - instrument.speed >= 10)
+ 164   3                  {
+ 165   4                      speed_of_lag -= 10;
+ 166   4                  }
+ 167   3                  else
+C51 COMPILER V9.60.7.0   SPEED_SCAN                                                        05/18/2026 16:07:29 PAGE 4   
 
- 168   4                      speed_of_lag--;
- 169   4                  }
- 170   3              }
- 171   2              else if (speed_of_lag < instrument.speed)
- 172   2              {
- 173   3                  speed_of_lag++;
- 174   3              }
- 175   2      
- 176   2              aip3368h_display_speed(speed_of_lag);
- 177   2          }
- 178   1      }
- 179          
- 180          #endif
+ 168   3                  {
+ 169   4                      speed_of_lag--;
+ 170   4                  }
+ 171   3              }
+ 172   2              else if (speed_of_lag < instrument.speed)
+ 173   2              {
+ 174   3                  if (instrument.speed - speed_of_lag >= 10)
+ 175   3                  {
+ 176   4                      speed_of_lag += 10;
+ 177   4                  }
+ 178   3                  else
+ 179   3                  {
+ 180   4                      speed_of_lag++;
+ 181   4                  }
+ 182   3              }
+ 183   2      
+ 184   2              aip3368h_display_speed(speed_of_lag);
+ 185   2          }
+ 186   1      }
+ 187          
+ 188          #endif
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    517    ----
+   CODE SIZE        =    552    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =     21       8
    PDATA SIZE       =   ----    ----
