@@ -69,6 +69,10 @@ void TIMR1_IRQHandler(void) interrupt TMR1_IRQn
         fuel_lev_update_time_add();
 #endif
 
+// #if SPEED_SCAN_ENABLE
+//         speed_scan_time_add();
+// #endif
+
         // if (mileage_update_time_cnt < 65535)
         {
             mileage_update_time_cnt++;

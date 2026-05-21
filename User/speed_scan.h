@@ -24,11 +24,13 @@
 #define SPEED_SCAN_UPDATE_TIME (500)
 // #define SPEED_SCAN_UPDATE_TIME (400) // 时间太短，时速会经常跳动（提供1Hz信号，会在0km/h、3km/h这两个值来回切换）
 
-
 // 更新时速显示的时间周期，单位：ms
 #define AIP3368H_DISPLAY_SPEED_REFRESH_TIME (75)
 
 void speed_scan_timer_50us_isr(void);
+
+void speed_scan_pulse_50us_isr(void);
+// void speed_scan_time_add(void);
 
 void speed_scan_config(void);
 void speed_scan(void);

@@ -56,6 +56,7 @@ void TIMR2_IRQHandler(void) interrupt TMR2_IRQn
 
 #if SPEED_SCAN_ENABLE
         speed_scan_timer_50us_isr();
+        // speed_scan_pulse_50us_isr();
 #endif
     }
 

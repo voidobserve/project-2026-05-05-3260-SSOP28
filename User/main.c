@@ -83,16 +83,10 @@ void main(void)
     /* 用户代码初始化接口 */
     user_init();
 
+    // TODO: 
     // 上电之后，需要先跑一遍开机动画，再继续主循环
-    aip3368h_display_boot_animation_handle();
-
-    // USER_TO_DO 测试时使用:
-    // instrument.save_info.total_mileage = (u32)999999000;
-    // instrument.save_info.is_display_total_mileage = 1;
-
-    // instrument.save_info.subtotal_mileage = (u32)12345600;
-    // instrument.save_info.is_display_total_mileage = 0;
-
+    // aip3368h_display_boot_animation_handle();
+ 
     /* 系统主循环 */
     while (1)
     {
