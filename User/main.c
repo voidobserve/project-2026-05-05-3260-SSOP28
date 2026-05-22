@@ -85,7 +85,7 @@ void main(void)
 
     // TODO: 
     // 上电之后，需要先跑一遍开机动画，再继续主循环
-    // aip3368h_display_boot_animation_handle();
+    aip3368h_display_boot_animation_handle();
  
     /* 系统主循环 */
     while (1)

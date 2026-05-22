@@ -15,6 +15,7 @@ static volatile u8 aip3368h_display_speed_refresh_time_cnt = 0;
 
 // 滑动平局数组
 #define SPEED_FILTER_ARRAY_SIZE (40)
+// #define SPEED_FILTER_ARRAY_SIZE (20)
 static volatile u8 speed_filter_array[SPEED_FILTER_ARRAY_SIZE] = {0};
 static volatile u8 speed_filter_index = 0;
 
@@ -25,6 +26,8 @@ void speed_filter_init(u8 speed)
     {
         speed_filter_array[i] = speed;
     }
+
+    speed_filter_index = 0;
 }
 
 void speed_filter_add(u8 speed)
@@ -258,7 +261,7 @@ void speed_scan(void)
 
         if (flag_is_speed_scan_over_time) // 超时，采集到的脉冲个数对应一直是0km/h，认为时速是0
         {
-            printf("scan over time\n");
+            // printf("scan over time\n");
             if (cur_speed_scan_pulse != 0)
             {
                 // 如果采集的脉冲个数不为0
@@ -299,6 +302,11 @@ void speed_scan(void)
         cur_speed_scan_time = 0;
         flag_is_speed_scan_over_time = 0;
 
+        if (cur_speed > 0)
+        {
+            cur_speed = (u32)cur_speed * 102 / 100;
+        }
+
         // 限制要发送的时速:
         if (cur_speed > 199)
         {
@@ -329,23 +337,21 @@ void aip3368h_display_speed_refresh_time_add(void)
 
 void aip3368h_display_speed_handle(void)
 {
-    static u8 is_initialized = 0; // 是否初始化
-    static u8 speed_of_lag = 0;   // 延迟显示的时速
-    volatile u8 cur_speed;        //
+    static volatile u8 is_initialized = 0; // 是否初始化
+    static volatile u8 speed_of_lag = 0;   // 延迟显示的时速
+    volatile u8 cur_speed;                 //
 
     // α越小越平滑但响应慢,α越大响应快但平滑差
-#define ALPHA 7 // 滤波系数，范围：0~10，推荐值 1~3
+#define ALPHA 7 // 滤波系数，范围：0 ~ 10，推荐值 1 ~ 3
     static volatile u8 filtered_speed;
-
-    volatile u8 last_get_speed = 0;
-    volatile u8 speed_stable_cnt = 0;
+    u8 base_step;
+    u8 speed_abs_diff;
 
     if (0 == is_initialized)
     {
         is_initialized = 1;
 
         speed_of_lag = instrument.speed; // 初始化，直接获取当前最新的速度值
-        last_get_speed = instrument.speed;
         filtered_speed = instrument.speed;
         aip3368h_display_speed(speed_of_lag);
 
@@ -356,11 +362,74 @@ void aip3368h_display_speed_handle(void)
     {
         aip3368h_display_speed_refresh_time_cnt = 0;
 
+        // 如果当前显示的速度值和计算出来的速度值相差太大，需要进行快速逼近：
+        if (speed_of_lag > instrument.speed)
+        {
+            speed_abs_diff = speed_of_lag - instrument.speed;
+            if (speed_abs_diff >= 10)
+            {
+                // 根据速度插值，调节步长
+                if (speed_abs_diff >= 50)
+                {
+                    base_step = 20;
+                }
+                else if (speed_abs_diff >= 20)
+                {
+                    base_step = 10;
+                }
+                else
+                {
+                    base_step = 5;
+                }
+
+                speed_of_lag -= base_step;
+#if USER_DEBUG_ENABLE
+                printf("speed_of_lag == %u\n", (u16)speed_of_lag);
+#endif
+
+                speed_filter_init(instrument.speed);
+                filtered_speed = instrument.speed;
+                aip3368h_display_speed(speed_of_lag);
+                return;
+            }
+        }
+        else if (speed_of_lag < instrument.speed)
+        {
+            speed_abs_diff = instrument.speed - speed_of_lag;
+            if (speed_abs_diff >= 10)
+            {
+                // 根据速度插值，调节步长
+                if (speed_abs_diff >= 50)
+                {
+                    base_step = 20;
+                }
+                else if (speed_abs_diff >= 20)
+                {
+                    base_step = 10;
+                }
+                else
+                {
+                    base_step = 5;
+                }
+
+                speed_of_lag += base_step;
+#if USER_DEBUG_ENABLE
+                printf("speed_of_lag == %u\n", (u16)speed_of_lag);
+#endif
+
+                speed_filter_init(instrument.speed);
+                filtered_speed = instrument.speed;
+                aip3368h_display_speed(speed_of_lag);
+                return;
+            }
+        }
+
         speed_filter_add(instrument.speed);
         cur_speed = speed_filter_get_speed();
-        // cur_speed = instrument.speed;
-
-        // USER_TO_DO  如果当前速度值和过滤后的速度值都是10以下，需要注意
+        /*
+            如果当前速度值和过滤后的速度值都是10以下，需要注意
+            不能再经过低通滤波器，会导致最后计算出的时速变为0
+        */
         if (cur_speed < 10)
         {
             filtered_speed = cur_speed;
@@ -371,44 +440,20 @@ void aip3368h_display_speed_handle(void)
             filtered_speed = ((u16)ALPHA * cur_speed + ((u16)10 - ALPHA) * filtered_speed) / 10;
         }
 
-        // filtered_speed = (u8)((u16)ALPHA * cur_speed / 10 + ((u16)10 - ALPHA) * filtered_speed / 10);
         cur_speed = filtered_speed;
-
-        // // 如果速度值在小幅度波动，不更新显示
-        // if (speed_of_lag != cur_speed)
-        // {
-        //     if (speed_of_lag > cur_speed)
-        //     {
-        //     }
-        //     else
-        //     {
-        //     }
-        // }
 
         if (speed_of_lag > cur_speed)
         {
-            if (speed_of_lag - cur_speed >= 10)
-            {
-                speed_of_lag -= 10;
-            }
-            else
-            {
-                speed_of_lag--;
-            }
+            speed_of_lag--;
         }
         else if (speed_of_lag < cur_speed)
         {
-            if (cur_speed - speed_of_lag >= 10)
-            {
-                speed_of_lag += 10;
-            }
-            else
-            {
-                speed_of_lag++;
-            }
+            speed_of_lag++;
         }
 
+#if USER_DEBUG_ENABLE
         printf("speed_of_lag == %u\n", (u16)speed_of_lag);
+#endif
         aip3368h_display_speed(speed_of_lag);
     }
 }
